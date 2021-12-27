@@ -10,7 +10,7 @@ Keep moving the cursor if your are away to avoid inactivity.
 - On Linux supports both **X11** and **Wayland**!
 - **Pure Python**, no C modules to be compiled.
 - **Zero dependencies**.
-- **Python 3**.
+- Supports **Python 3+**.
 
 This program won't do anything if you are using your computer.
 
