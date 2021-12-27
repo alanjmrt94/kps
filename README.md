@@ -7,6 +7,7 @@ Keep moving the cursor if your are away to avoid inactivity.
 ## Features
 
 - Supports **Windows**, **Linux** and **MacOS**.
+- On Linux supports both **X11** and **Wayland**!
 - **Pure Python**, no C modules to be compiled.
 - **Zero dependencies**.
 - **Python 3**.
