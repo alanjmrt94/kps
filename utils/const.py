@@ -1,6 +1,6 @@
 from enum import Enum, StrEnum, unique
 
-Version = "1.1.1.5"
+Version = "1.1.1.6"
 
 class Display(StrEnum):
     def __str__(self):

@@ -2,7 +2,7 @@
 
 Keep moving the cursor if your are away to avoid inactivity.
 
-Release v1.1.5:
+Release v1.1.6:
 
 * Auto install dependencies depending on OS platform and py version
 * Add version utilites

@@ -1,12 +1,13 @@
 # Release notes
 
-## 1.1.5
+## 1.1.6
 
 * Auto install dependencies depending on OS platform and py version
 * Add version utilites
 * Fix strings and typos
 * Show kps version
 * Fix const enums
+* Fix .venv location
 
 ## 1.1.0
 
