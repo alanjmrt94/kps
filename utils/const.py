@@ -1,7 +1,10 @@
-from enum import Enum, unique
+from enum import Enum, StrEnum, unique
 
+Version = "1.1.1.5"
 
-class Display(Enum):
+class Display(StrEnum):
+    def __str__(self):
+        return str(self.value)
     X11 = 'X11Display'
     WAYLAND = 'GdkWaylandDisplay'
     WIN32 = 'GdkWin32Display'
@@ -9,12 +12,17 @@ class Display(Enum):
 
 
 @unique
-class IdleState(Enum):
-    UNKNOWN = 'unknown'
-    XA = 'xa'
+class IdleState(StrEnum):
+    def __str__(self):
+        return str(self.value)
+    UNKNOWN = 'OS probably not supported'
+    XA = 'extended away'
     AWAY = 'away'
-    AWAKE = 'online'
+    AWAKE = 'awake'
 
-class OsType(Enum):
-    UNIX='posix'
-    WINDOWS='nt'
+@unique
+class OsType(StrEnum):
+    def __str__(self):
+        return str(self.value)
+    UNIX = 'posix'
+    WINDOWS = 'nt'

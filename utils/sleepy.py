@@ -23,12 +23,7 @@
 
 import os
 
-from utils.const import OsType
-
-STATE_UNKNOWN = 'OS probably not supported'
-STATE_XA = 'extended away'
-STATE_AWAY = 'away'
-STATE_AWAKE = 'awake'
+from utils.const import IdleState, OsType
 
 SUPPORTED = True
 away_interval = 60
@@ -63,7 +58,7 @@ class SleepyWindows:
     def __init__(self, away_interval, xa_interval):
         self.away_interval = away_interval
         self.xa_interval = xa_interval
-        self.state = STATE_AWAKE  # assume we are awake
+        self.state = IdleState.AWAKE  # assume we are awake
 
     def getIdleSec(self):
         GetLastInputInfo(ctypes.byref(lastInputInfo))
@@ -82,13 +77,13 @@ class SleepyWindows:
         # 0x72 is SPI_GETSCREENSAVERRUNNING
         if SystemParametersInfo(0x72, 0, ctypes.byref(saver_runing), 0) and \
                 saver_runing.value:
-            self.state = STATE_XA
+            self.state = IdleState.XA
             return True
 
         desk = OpenInputDesktop(0, False, 0)
         if not desk:
             # Screen locked
-            self.state = STATE_XA
+            self.state = IdleState.XA
             return True
         CloseDesktop(desk)
 
@@ -96,11 +91,11 @@ class SleepyWindows:
 
         # xa is stronger than away so check for xa first
         if idleTime > self.xa_interval:
-            self.state = STATE_XA
+            self.state = IdleState.XA
         elif idleTime > self.away_interval:
-            self.state = STATE_AWAY
+            self.state = IdleState.AWAY
         else:
-            self.state = STATE_AWAKE
+            self.state = IdleState.AWAKE
         return True
 
     def getState(self):
@@ -115,7 +110,7 @@ class SleepyUnix:
         global SUPPORTED
         self.away_interval = away_interval
         self.xa_interval = xa_interval
-        self.state = STATE_AWAKE  # assume we are awake
+        self.state = IdleState.AWAKE  # assume we are awake
 
     def getIdleSec(self):
         return idle.getIdleSec()
@@ -131,11 +126,11 @@ class SleepyUnix:
 
         # xa is stronger than away so check for xa first
         if idleTime > self.xa_interval:
-            self.state = STATE_XA
+            self.state = IdleState.XA
         elif idleTime > self.away_interval:
-            self.state = STATE_AWAY
+            self.state = IdleState.AWAY
         else:
-            self.state = STATE_AWAKE
+            self.state = IdleState.AWAKE
         return True
 
     def getState(self):
