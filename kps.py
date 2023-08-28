@@ -20,7 +20,7 @@ def commandline():
 
     parser.add_argument(
         "-t", "--time", type=int,
-        help="time in seconds of how long to wait after a user is considered inactive.(Default:450)")
+        help="time in seconds of how long to wait after a user is considered inactive.(Default: 2)")
 
     args = parser.parse_args()
 
