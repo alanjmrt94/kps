@@ -9,6 +9,9 @@ events = (
     uinput.BTN_LEFT,
     uinput.BTN_RIGHT,
 )
+
+time.sleep(1)
+
 with uinput.Device(events) as device:
     for i in range(3):
         if i == 2:
