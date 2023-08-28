@@ -25,4 +25,8 @@ Clone the repository (no installation required, source files are sufficient):
 
     git clone https://github.com/alanjmrt94/kps
 
-In a terminal, run 'python3 kps.py' to run or use -h to see available options.
+On a terminal, run:
+
+    python3 kps.py
+
+*Use -h to see available options.*
