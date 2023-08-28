@@ -6,7 +6,7 @@ from utils.const import OsType
 from utils.version import Py_version
 
 module = ""
-venv_path = "../.venv"
+venv_path = ".venv"
 
 ubuntu_apt_reqs = "libcairo2 libcairo2-dev pkg-config python3-dev libgirepository1.0-dev python3-gi libxt-dev python3-uinput"
 pip_reqs = ["pycairo", "PyGObject", "python-uinput"]
