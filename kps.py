@@ -7,6 +7,7 @@ from subprocess import call
 from utils.const import OsType
 
 from utils.install import Autoinstall, Restart
+from utils.version import App_version
 
 away_time = 2
 poll_interval = 5
@@ -55,6 +56,7 @@ def move_mouse(pwd):
 
 
 def main():
+    print("kps v" + App_version())
     commandline()
 
     if os.name == OsType.WINDOWS:
