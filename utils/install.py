@@ -2,6 +2,8 @@ import os
 import subprocess
 import sys
 
+from utils.const import OsType
+
 module = ""
 venv_path = "../.venv"
 

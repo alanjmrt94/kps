@@ -23,6 +23,8 @@
 
 import os
 
+from utils.const import OsType
+
 STATE_UNKNOWN = 'OS probably not supported'
 STATE_XA = 'extended away'
 STATE_AWAY = 'away'
@@ -33,7 +35,7 @@ away_interval = 60
 xa_interval = 120
 
 try:
-    if os.name == 'nt':
+    if os.name == OsType.WINDOWS:
         import ctypes
 
         GetTickCount = ctypes.windll.kernel32.GetTickCount
@@ -143,7 +145,7 @@ class SleepyUnix:
         self.state = val
 
 
-if os.name == 'nt':
+if os.name == OsType.WINDOWS:
     Sleepy = SleepyWindows
 else:
     Sleepy = SleepyUnix

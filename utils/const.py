@@ -14,3 +14,7 @@ class IdleState(Enum):
     XA = 'xa'
     AWAY = 'away'
     AWAKE = 'online'
+
+class OsType(Enum):
+    UNIX='posix'
+    WINDOWS='nt'
