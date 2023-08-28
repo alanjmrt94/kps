@@ -29,7 +29,7 @@ def commandline():
         global away_time
         away_time = int(args.time)
 
-    print(get_now_timestamp(), 'Moving mouse every',
+    print('Set move mouse time every',
           str(away_time), 'seconds of inactivity.\n')
 
 
