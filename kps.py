@@ -4,9 +4,9 @@ import time
 from datetime import datetime
 from getpass import getpass
 from subprocess import call
+from utils.const import OsType
 
-from utils.idle import Monitor
-from utils.install import Install, Install_apt, Restart
+from utils.install import Autoinstall, Restart
 
 away_time = 2
 poll_interval = 5
@@ -38,6 +38,7 @@ def get_now_timestamp():
 
 
 def move_mouse(pwd):
+    from utils.idle import Monitor
     while 1:
         seconds = Monitor.get_idle_sec()
         if seconds > away_time:
@@ -56,19 +57,14 @@ def move_mouse(pwd):
 def main():
     commandline()
 
-    if os.name == 'nt':
+    if os.name == OsType.WINDOWS:
         move_mouse(None)
     else:
         print("On Linux you must enter your sudo password for it to work: ")
         pwd = getpass()
         call('echo {} | sudo -S {}'.format(pwd,
              "sudo :>/dev/null 2>&1"), shell=True)
-        
-        Install_apt()
-        Install("pycairo")
-        Install("PyGObject")
-        Install("python-uinput")
-        # Restart()
+        Autoinstall()
         move_mouse(pwd)
 
 
