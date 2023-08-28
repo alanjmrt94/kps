@@ -25,6 +25,8 @@ import logging
 import sys
 import time
 
+import gi
+gi.require_version("Gtk", "4.0")
 from gi.repository import Gio, GLib, GObject
 
 from utils import app
