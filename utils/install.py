@@ -12,8 +12,8 @@ ubuntu_apt_reqs = "libcairo2 libcairo2-dev pkg-config python3-dev libgirepositor
 pip_reqs = ["pycairo", "PyGObject", "python-uinput"]
 
 def install_apt():
-    print("\Check and install apt packages:\n")
-    proc = subprocess.Popen('sudo apt install -y' + ubuntu_apt_reqs, shell=True, executable="/bin/bash")
+    print("Check and install apt packages:\n")
+    proc = subprocess.Popen('sudo apt install -y ' + ubuntu_apt_reqs, shell=True, executable="/bin/bash")
     proc.wait()
 
 def create_and_activate_venv(venv_path):
