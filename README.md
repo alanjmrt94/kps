@@ -2,10 +2,12 @@
 
 Keep moving the cursor if your are away to avoid inactivity.
 
-Release v1.1.0:
+Release v1.1.5:
 
-* Auto install dependencies on Linux
-* Fix userspace detection
+* Auto install dependencies depending on OS platform and py version
+* Add version utilites
+* Fix strings and typos
+* Show kps version
 
 ## Features
 
