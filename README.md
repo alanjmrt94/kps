@@ -2,13 +2,6 @@
 
 Keep moving the cursor if your are away to avoid inactivity.
 
-Release v1.1.6:
-
-* Auto install dependencies depending on OS platform and py version
-* Add version utilites
-* Fix strings and typos
-* Show kps version
-
 ## Features
 
 * Supports **Windows**, **Linux** and **MacOS**.
@@ -16,8 +9,17 @@ Release v1.1.6:
 * **Pure Python**, no C modules to be compiled.
 * **Auto install dependencies**.
 * Supports **Python 3+**.
+  
+The program works in the background and waits only for inactivity to move the mouse.
 
-This program won't do anything if you are using your computer.
+## Latest changes
+
+Release v1.1.6:
+
+* Auto install dependencies depending on OS platform and py version
+* Add version utilites
+* Fix strings and typos
+* Show kps version
 
 ## Usage
 
