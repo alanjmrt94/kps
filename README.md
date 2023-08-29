@@ -1,11 +1,11 @@
 # kps
 
-Keep moving the cursor if your are away to avoid inactivity.
+Keep moving the cursor if you are away to avoid inactivity.
 
 ## Features
 
-* Supports **Windows**, **Linux** and **MacOS**.
-* On Linux supports both **X11** and **Wayland**!
+* Supports **Windows**, **Linux** and **macOS**.
+* On Linux, supports both **X11** and **Wayland**!
 * **Pure Python**, no C modules to be compiled.
 * **Auto install dependencies**.
 * Supports **Python 3+**.
@@ -17,7 +17,7 @@ The program works in the background and waits only for inactivity to move the mo
 Release v1.1.6:
 
 * Auto install dependencies depending on OS platform and py version
-* Add version utilites
+* Add version utilities
 * Fix strings and typos
 * Show kps version
 
