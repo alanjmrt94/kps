@@ -16,8 +16,8 @@ cmd = 'python3 ./utils/move.py'
 
 def commandline():
     parser = argparse.ArgumentParser(
-        description="This program keep moving the cursor if you are away to avoid inactivity."
-                    "This program won't do anything if you are using your computer.")
+        description="This program keeps moving the cursor if you are away to avoid inactivity."
+                    "The program works in the background and waits only for inactivity to move the mouse.")
 
     parser.add_argument(
         "-t", "--time", type=int,
@@ -62,7 +62,7 @@ def main():
     if os.name == OsType.WINDOWS:
         move_mouse(None)
     else:
-        print("On Linux you must enter your sudo password for it to work: ")
+        print("On Linux, you must enter your sudo password for it to work: ")
         pwd = getpass()
         call('echo {} | sudo -S {}'.format(pwd,
              "sudo :>/dev/null 2>&1"), shell=True)
