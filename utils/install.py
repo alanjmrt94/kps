@@ -1,66 +1,191 @@
+"""Instalación de dependencias de kps por plataforma."""
+
+from __future__ import annotations
+
 import os
 import subprocess
 import sys
+from pathlib import Path
 
 from utils.const import OsType
-from utils.version import Py_version
 
-module = ""
-venv_path = ".venv"
+VENV_DIR_NAME = ".venv"
 
-ubuntu_apt_reqs = "libcairo2 libcairo2-dev pkg-config python3-dev libgirepository1.0-dev python3-gi libxt-dev python3-uinput"
-pip_reqs = ["pycairo", "PyGObject", "python-uinput"]
+# Verificación de imports tras instalar (por plataforma)
+_VERIFY_LINUX = """
+import gi
+gi.require_version("Gtk", "4.0")
+gi.require_version("Gdk", "4.0")
+from gi.repository import Gdk, Gio, GLib, GObject
+import uinput
+"""
 
-def install_apt():
-    print("Check and install apt packages:\n")
-    proc = subprocess.Popen('sudo apt install -y ' + ubuntu_apt_reqs, shell=True, executable="/bin/bash")
-    proc.wait()
+_VERIFY_WINDOWS = """
+import pyautogui
+"""
 
-def create_and_activate_venv(venv_path):
-    subprocess.run([sys.executable, "-m", "venv", venv_path], check=True)
+_VERIFY_MACOS = """
+import pyautogui
+from Quartz import CGEventSourceSecondsSinceLastEventType
+"""
 
-    if sys.platform.startswith("win"):
-        activate_script = os.path.join(venv_path, "Scripts", "activate")
-        subprocess.run([activate_script], shell=True, check=True)
+
+def project_root() -> Path:
+    """Ruta raíz del proyecto kps."""
+    return Path(__file__).resolve().parent.parent
+
+
+def scripts_dir() -> Path:
+    """Directorio scripts/ del proyecto."""
+    return project_root() / "scripts"
+
+
+def venv_dir() -> Path:
+    """Ruta del entorno virtual .venv."""
+    return project_root() / VENV_DIR_NAME
+
+
+def venv_python() -> Path:
+    """Ejecutable python dentro del venv según la plataforma."""
+    root = venv_dir()
+    if sys.platform == "win32":
+        return root / "Scripts" / "python.exe"
+    return root / "bin" / "python3"
+
+
+def venv_pip() -> Path:
+    """Ejecutable pip dentro del venv según la plataforma."""
+    root = venv_dir()
+    if sys.platform == "win32":
+        return root / "Scripts" / "pip.exe"
+    return root / "bin" / "pip"
+
+
+def detect_os() -> str:
+    """Devuelve linux, windows o macos según el sistema actual."""
+    if os.name == OsType.WINDOWS:
+        return "windows"
+    if sys.platform == "darwin":
+        return "macos"
+    return "linux"
+
+
+def requirements_file() -> Path:
+    """Archivo requirements pip correspondiente a la plataforma."""
+    name = {
+        "linux": "requirements.txt",
+        "windows": "requirements-windows.txt",
+        "macos": "requirements-macos.txt",
+    }[detect_os()]
+    return scripts_dir() / name
+
+
+def platform_install_script() -> Path:
+    """Script de instalación del sistema operativo actual."""
+    name = {
+        "linux": "install.sh",
+        "windows": "install.bat",
+        "macos": "install-macos.sh",
+    }[detect_os()]
+    return scripts_dir() / name
+
+
+def _run(cmd: list[str], *, cwd: Path | None = None, shell: bool = False) -> None:
+    """Ejecuta un subprocess y propaga errores."""
+    subprocess.run(cmd, cwd=cwd or project_root(), check=True, shell=shell)
+
+
+def run_platform_install() -> None:
+    """Ejecuta el script de instalación del sistema operativo actual."""
+    script = platform_install_script()
+    if not script.is_file():
+        raise FileNotFoundError(f"No se encontró el script de instalación: {script}")
+
+    print(f"[kps] Ejecutando {script.name}...")
+    if detect_os() == "windows":
+        _run([str(script)], shell=True)
     else:
-        activate_script = os.path.join(venv_path, "bin", "activate")
-        subprocess.run([".", activate_script], shell=True, check=True)
+        _run(["bash", str(script)])
 
-def install_package(venv_path, package):
-    print("\nInstalling package {0}\n".format(package))
-    if (Py_version() < 3):
-        subprocess.run([os.path.join(venv_path, "bin", "pip"), "install", package], check=True)
-    else:
-        subprocess.run([os.path.join(venv_path, "bin", "pip3"), "install", package], check=True)
 
-def install(package_name):
-    create_and_activate_venv(venv_path)
-    install_package(venv_path, package_name)
+def ensure_venv() -> Path:
+    """Crea .venv una sola vez si no existe."""
+    path = venv_dir()
+    if path.is_dir():
+        print(f"[kps] Entorno virtual existente: {path}")
+        return path
 
-def deactivate_env():
-    # Deactivate the virtual environment
-    if sys.platform.startswith("win"):
-        deactivate_script = os.path.join(venv_path, "Scripts", "deactivate")
-        subprocess.run([deactivate_script], shell=True, check=True)
-    else:
-        deactivate_script = os.path.join(venv_path, "bin", "deactivate")
-        subprocess.run([".", deactivate_script], shell=True, check=True)
+    print(f"[kps] Creando entorno virtual en {path}...")
+    _run([sys.executable, "-m", "venv", str(path)])
+    return path
 
-def Restart():
-    print("restart")
-    subprocess.run([os.path.join(venv_path, "bin", "python3"), "kps.py"], check=True)
 
-def Autoinstall():
-    if os.name == OsType.UNIX:
-        install_apt()
-        install("pycairo")
-        install("PyGObject")
-        install("python-uinput")
+def install_pip_deps() -> None:
+    """Instala dependencias pip en .venv (fallback o uso directo desde Python)."""
+    req = requirements_file()
+    if not req.is_file():
+        raise FileNotFoundError(f"No se encontró {req}")
 
-def test_package():
-    try:
-        print("\n\tTesting new package...\n")
-        # TODO: TEST FUNC
-    except:
-        print()
-        # print("\n\tPackage {} couldn't be loaded".format(module))
+    ensure_venv()
+    pip = venv_pip()
+    if not pip.is_file():
+        raise FileNotFoundError(f"No se encontró pip en el venv: {pip}")
+
+    print(f"[kps] Instalando dependencias desde {req.name}...")
+    _run([str(pip), "install", "--upgrade", "pip", "wheel", "setuptools"])
+    _run([str(pip), "install", "-r", str(req)])
+
+
+def verify_imports() -> bool:
+    """Comprueba que los imports principales funcionan en el venv."""
+    py = venv_python()
+    if not py.is_file():
+        print("[kps] ERROR: no existe el intérprete del venv. Ejecuta la instalación primero.")
+        return False
+
+    code = {
+        "linux": _VERIFY_LINUX,
+        "windows": _VERIFY_WINDOWS,
+        "macos": _VERIFY_MACOS,
+    }[detect_os()]
+
+    print("[kps] Verificando imports principales...")
+    result = subprocess.run(
+        [str(py), "-c", code.strip()],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        print("[kps] ERROR: falló la verificación de imports.")
+        if result.stderr:
+            print(result.stderr.strip())
+        return False
+
+    print("[kps] OK: imports verificados.")
+    return True
+
+
+def test_package() -> bool:
+    """Comprueba que el entorno está listo para ejecutar kps."""
+    return verify_imports()
+
+
+def autoinstall() -> None:
+    """
+    Instala dependencias según la plataforma:
+    1. Script install del OS (apt/venv/pip o equivalente)
+    2. Verificación de imports en .venv
+    """
+    print("[kps] Iniciando autoinstalación...")
+    run_platform_install()
+    if not verify_imports():
+        raise RuntimeError(
+            "La instalación terminó pero los imports no pasaron la verificación. "
+            "Revisa la salida de install.sh o instala manualmente con ./scripts/install.sh"
+        )
+    print("[kps] Autoinstalación completada.")
+
+
+# Alias legacy usado por kps.py
+Autoinstall = autoinstall
