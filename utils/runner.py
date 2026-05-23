@@ -5,11 +5,18 @@ from __future__ import annotations
 import logging
 import os
 import subprocess
+import sys
 import time
 from datetime import datetime
+from pathlib import Path
 
 from utils.cli import KpsConfig
-from utils.const import MOVE_SCRIPT, OsType, WINDOWS_MOVE_CMD
+from utils.const import (
+    MOVE_SCRIPT_LINUX,
+    MOVE_SCRIPT_MACOS,
+    MOVE_SCRIPT_WINDOWS,
+    OsType,
+)
 from utils.install import project_root, venv_python
 
 log = logging.getLogger("kps.runner")
@@ -20,14 +27,18 @@ def now_timestamp() -> str:
     return datetime.now().strftime("%H:%M:%S")
 
 
+def move_script_path() -> Path:
+    """Ruta del script de movimiento según la plataforma."""
+    if os.name == OsType.WINDOWS:
+        return project_root() / MOVE_SCRIPT_WINDOWS
+    if sys.platform == "darwin":
+        return project_root() / MOVE_SCRIPT_MACOS
+    return project_root() / MOVE_SCRIPT_LINUX
+
+
 def run_move() -> None:
     """Ejecuta el script de movimiento del ratón según la plataforma."""
-    if os.name == OsType.WINDOWS:
-        log.debug("Ejecutando movimiento Windows: %s", WINDOWS_MOVE_CMD)
-        os.system(WINDOWS_MOVE_CMD)
-        return
-
-    move_py = project_root() / MOVE_SCRIPT
+    move_py = move_script_path()
     cmd = [str(venv_python()), str(move_py)]
     log.debug("Ejecutando: %s", " ".join(cmd))
     result = subprocess.run(
@@ -47,9 +58,13 @@ def run_loop(config: KpsConfig) -> None:
     """
     Bucle principal: mueve el cursor tras ``away_time`` segundos de inactividad.
 
-    Import tardío de Monitor: requiere PyGObject del venv tras setup_environment().
+    Import tardío de Monitor: requiere deps del venv tras setup_environment().
     """
     from utils.idle import Monitor  # pylint: disable=import-outside-toplevel
+
+    if not Monitor.is_available():
+        log.error("Monitor de inactividad no disponible en esta plataforma.")
+        sys.exit(1)
 
     log.info(
         "Mover el ratón tras %s s de inactividad (sondeo cada %s s).",

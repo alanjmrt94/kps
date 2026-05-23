@@ -2,15 +2,16 @@
 
 from enum import StrEnum, unique
 
-Version = "1.3.1"  # pylint: disable=invalid-name  # Mayor.minor.patch; usado por App_version()
+Version = "1.4.0"  # pylint: disable=invalid-name  # Mayor.minor.patch; usado por App_version()
 
 # Tiempos por defecto (segundos)
 DEFAULT_AWAY_TIME = 2
 DEFAULT_POLL_INTERVAL = 5
 
-# Rutas y comandos de movimiento del ratón
-MOVE_SCRIPT = "utils/move.py"
-WINDOWS_MOVE_CMD = "cmd /c utils/move.bat"
+# Rutas de scripts de movimiento del ratón por plataforma
+MOVE_SCRIPT_LINUX = "utils/move.py"
+MOVE_SCRIPT_WINDOWS = "utils/move_win.py"
+MOVE_SCRIPT_MACOS = "utils/move_mac.py"
 
 VENV_DIR_NAME = ".venv"
 

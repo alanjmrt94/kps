@@ -1,0 +1,19 @@
+[MASTER]
+ignore=libs
+jobs=0
+
+[MESSAGES CONTROL]
+disable=
+    duplicate-code
+
+[FORMAT]
+max-line-length=100
+
+[DESIGN]
+min-public-methods=0
+
+[BASIC]
+good-names=dx,dy,i,j,k,ex,Run,Id
+
+[TYPECHECK]
+generated-members=ctypes.*

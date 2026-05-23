@@ -35,7 +35,26 @@ ls -l /dev/uinput   # crw-rw---- root uinput
 
 `kps.py` verifica acceso a uinput **sin sudo** al arrancar. Si falla, indica si falta install o re-login.
 
-**Lanzador:** `../.run` (install + `kps.py`).
+### Escritorios y sesiones gráficas (Linux)
+
+kps **no usa el GTK del escritorio** (MATE GTK3, GNOME GTK4, etc.). Idle en Linux:
+
+1. D-Bus `org.freedesktop.ScreenSaver`
+2. D-Bus `org.gnome.Mutter.IdleMonitor` (GNOME/Wayland)
+3. XScreenSaver / `libXss` (solo sesión **X11**)
+
+| Escritorio | Sesión | Backend habitual |
+|------------|--------|------------------|
+| GNOME | Wayland | D-Bus (Mutter o freedesktop) |
+| GNOME, KDE | X11 | D-Bus o XScreenSaver |
+| MATE, Xfce, LXQt, Cinnamon | X11 | XScreenSaver |
+| KDE Plasma | Wayland | D-Bus freedesktop (si disponible) |
+
+En **Ubuntu MATE (X11)** suele funcionar vía XScreenSaver aunque no exista el D-Bus de GNOME. En **Wayland sin D-Bus idle**, el monitor puede fallar; preferir X11 o un compositor que exponga idle por D-Bus.
+
+Ver también la sección **Compatibilidad** en el [README](../README.md) del proyecto.
+
+**Lanzador:** `../run` (install + `kps.py`).
 
 ## Windows — `install.bat`
 

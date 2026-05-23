@@ -13,6 +13,12 @@ The program works in the background and waits only for inactivity to move the mo
 
 ## Latest changes
 
+Release **v1.4.0** — multiplataforma (Fase 3):
+
+* **Linux:** idle vía D-Bus (Gio) sin GTK4; Wayland por `XDG_SESSION_TYPE`
+* **Windows:** `utils/move_win.py` (pyautogui); sin `move.bat`
+* **macOS:** `utils/move_mac.py` + idle Quartz (`MacIdleMonitor`)
+
 Release **v1.3.1** — refactor (Fase 2):
 
 * **`utils/cli.py`** / **`utils/runner.py`** — separación CLI y bucle principal
@@ -21,6 +27,68 @@ Release **v1.3.1** — refactor (Fase 2):
 * Eliminado `utils/sleepy.py`
 
 See [CHANGES.md](CHANGES.md) for full release notes.
+
+## Compatibilidad
+
+Versiones y entornos probados o esperados según el backend de inactividad y movimiento del ratón.
+
+### Python
+
+| Versión | Estado |
+|---------|--------|
+| 3.10 – 3.12 | Compatible (objetivo principal; Ubuntu 24.04) |
+| 3.8 – 3.9 | Probable; no verificado en CI |
+| menor que 3.8 | No soportado |
+
+### Linux
+
+**Distros con script de instalación:** Debian/Ubuntu (`scripts/install.sh`). Otras distros: instalar manualmente PyGObject/Gio, `libxss-dev`, `python-uinput` y permisos uinput.
+
+**Importante:** kps **no depende del GTK del escritorio** (GTK3 vs GTK4 del DE). En runtime solo usa **Gio/D-Bus** y, en X11, **XScreenSaver** (`libXss`). Los paquetes apt `gir1.2-gtk-4.0` / `python3-gi` son la pila PyGObject del sistema, no el toolkit de MATE/GNOME.
+
+| Escritorio / entorno | Sesión típica | Detección idle | Movimiento ratón |
+|----------------------|---------------|----------------|------------------|
+| **GNOME** (Ubuntu, Fedora…) | Wayland | D-Bus `org.freedesktop.ScreenSaver` o `org.gnome.Mutter.IdleMonitor` | uinput |
+| **GNOME** | X11 | D-Bus → fallback XScreenSaver | uinput |
+| **Ubuntu MATE**, **Xfce**, **LXQt**, **Cinnamon** | X11 | XScreenSaver (`libXss`) | uinput |
+| **KDE Plasma** | X11 | D-Bus freedesktop o XScreenSaver | uinput |
+| **KDE Plasma** | Wayland | D-Bus freedesktop (si el compositor lo expone) | uinput |
+| **i3**, **Openbox**, WM mínimos | X11 | XScreenSaver | uinput |
+
+**Wayland sin D-Bus idle** (p. ej. MATE experimental en Wayland, algunos compositores): el monitor puede quedar no disponible; usar sesión **X11** o un DE que exponga idle por D-Bus.
+
+**Comprobar en tu máquina:**
+
+```bash
+echo "$XDG_SESSION_TYPE"    # x11 o wayland
+./run -v                    # logs del backend idle elegido
+```
+
+### Windows
+
+| Versión | Detección idle | Movimiento |
+|---------|----------------|------------|
+| Windows 10 | `GetLastInputInfo` (WinAPI) | pyautogui |
+| Windows 11 | Idem | pyautogui |
+
+Requisito: Python 3 en PATH (`python`).
+
+### macOS
+
+| Versión | Detección idle | Movimiento |
+|---------|----------------|------------|
+| macOS 12+ (Monterey y posteriores) | Quartz `CGEventSourceSecondsSinceLastEventType` | pyautogui |
+
+Requisito: `python3`; permisos de **Accesibilidad** pueden ser necesarios para pyautogui (Ajustes → Privacidad).
+
+### Resumen por plataforma
+
+| Plataforma | Probado / objetivo | Limitaciones conocidas |
+|------------|-------------------|------------------------|
+| Ubuntu 22.04 / 24.04 + GNOME | Sí | Re-login tras install (grupo `uinput`) |
+| Ubuntu MATE (GTK3, X11) | Esperado vía XScreenSaver | Wayland MATE no verificado |
+| Windows 10/11 | Implementado | Prueba manual pendiente |
+| macOS 12+ | Implementado | Accesibilidad; prueba manual pendiente |
 
 ## Quick start
 
@@ -90,7 +158,8 @@ Use `-h` to see available options. Examples:
 
 **Linux** (`scripts/requirements.txt`):
 
-* `pycairo`, `PyGObject`, `python-uinput`, `setuptools`, `wheel`
+* `python-uinput` (+ `wheel`, `setuptools`)
+* PyGObject y pycairo vía **apt** (`python3-gi`, `python3-gi-cairo`) y venv `--system-site-packages`
 
 **Windows** (`scripts/requirements-windows.txt`):
 

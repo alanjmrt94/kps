@@ -14,9 +14,8 @@ from utils.const import OsType, VENV_DIR_NAME
 # Verificación de imports tras instalar (por plataforma)
 _VERIFY_LINUX = """
 import gi
-gi.require_version("Gtk", "4.0")
-gi.require_version("Gdk", "4.0")
-from gi.repository import Gdk, Gio, GLib, GObject
+gi.require_version("Gio", "2.0")
+from gi.repository import Gio, GLib, GObject
 import uinput
 """
 

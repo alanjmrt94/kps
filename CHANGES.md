@@ -1,5 +1,40 @@
 # Release notes
 
+## 1.4.0
+
+**Soporte multiplataforma (Fase 3).**
+
+### Linux (3.1)
+
+* Detección idle vía **Gio/D-Bus** sin exigir GTK4/Gdk en import
+* Wayland detectado con `XDG_SESSION_TYPE` (sin Gdk)
+* Fallback: `org.freedesktop.ScreenSaver` → `org.gnome.Mutter.IdleMonitor` → XScreenSaver (solo X11)
+* Verificación post-install Linux: solo `Gio` + `uinput` (no Gtk/Gdk)
+
+### Windows (3.2)
+
+* Nuevo **`utils/move_win.py`** — movimiento del cursor con pyautogui
+* Eliminada dependencia de `utils/move.bat` (inexistente)
+* **`utils/runner.py`** unifica ejecución de move por plataforma vía venv
+
+### macOS (3.3)
+
+* Nuevo **`utils/move_mac.py`** — movimiento con pyautogui
+* **`MacIdleMonitor`** — tiempo idle vía Quartz (`CGEventSourceSecondsSinceLastEventType`)
+* Monitor desktop ligero sin PyGObject en Windows/macOS
+
+### Otros
+
+* **`utils/app.py`** — detección Wayland/X11 con fallback sin Gdk
+* Constantes de move por OS en `utils/const.py` (`MOVE_SCRIPT_LINUX/WINDOWS/MACOS`)
+
+### Documentación
+
+* **Tabla de compatibilidad** en README: Python, distros Linux, escritorios (GNOME, MATE, KDE, Xfce…), X11/Wayland y backends idle
+* `scripts/README.md`: entornos Linux adicionales y requisitos por sesión gráfica
+
+---
+
 ## 1.3.1
 
 **Refactor arquitectónico (Fase 2).**
@@ -147,8 +182,7 @@ CLI → setup_environment() → move_mouse()
 
 ### Limitaciones conocidas (1.2.0)
 
-* Windows: `utils/move.bat` aún no implementado (Fase 3.2)
-* macOS: move nativo pendiente (Fase 3.3)
+* Resueltas en **1.4.0**: Windows (`move_win.py`) y macOS (`move_mac.py` + Quartz idle)
 * `utils/install.py` legacy en 1.1.6 reemplazado; usar scripts + `setup_environment()`
 * Prueba en Ubuntu limpio (VM) recomendada antes de publicar
 
