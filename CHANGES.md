@@ -1,5 +1,18 @@
 # Release notes
 
+## 1.3.1
+
+**Refactor arquitectónico (Fase 2).**
+
+* Eliminar `utils/sleepy.py` (código legacy no usado)
+* Centralizar constantes en `utils/const.py` (`DEFAULT_AWAY_TIME`, `DEFAULT_POLL_INTERVAL`, rutas de move)
+* Nuevo `utils/cli.py` — argparse, `KpsConfig`, logging (`-v` / `-q`), CLI `-p` / `--poll`
+* Nuevo `utils/runner.py` — bucle de inactividad y `run_move()`
+* `kps.py` reducido a entrypoint mínimo
+* Mensajes de usuario en español vía logging
+
+---
+
 ## 1.3.0
 
 **Fix Linux install on Ubuntu 24.04+** — venv, PyGObject y apt.

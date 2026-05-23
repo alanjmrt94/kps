@@ -13,12 +13,12 @@ The program works in the background and waits only for inactivity to move the mo
 
 ## Latest changes
 
-Release **v1.3.0** — Linux install fixes (Ubuntu 24.04+):
+Release **v1.3.1** — refactor (Fase 2):
 
-* **Venv:** `--system-site-packages`; recrea `.venv` automáticamente si es incompatible
-* **PyGObject:** desde apt (`python3-gi`), no compila desde pip
-* **apt:** `libgirepository-2.0-dev`, `gir1.2-glib-2.0`; detección de paquetes corregida
-* **pip (Linux):** solo `python-uinput`
+* **`utils/cli.py`** / **`utils/runner.py`** — separación CLI y bucle principal
+* **Constantes** centralizadas en `utils/const.py`
+* **Logging** con `-v` / `-q`; mensajes en español
+* Eliminado `utils/sleepy.py`
 
 See [CHANGES.md](CHANGES.md) for full release notes.
 
@@ -68,9 +68,11 @@ After installation:
 
     python3 kps.py
 
-Use `-h` to see available options. Example:
+Use `-h` to see available options. Examples:
 
     python3 kps.py -t 10
+    python3 kps.py -p 3 -v
+    python3 kps.py -q
 
 ## Installation details
 

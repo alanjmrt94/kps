@@ -9,9 +9,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from utils.const import OsType
-
-VENV_DIR_NAME = ".venv"
+from utils.const import OsType, VENV_DIR_NAME
 
 # Verificación de imports tras instalar (por plataforma)
 _VERIFY_LINUX = """
