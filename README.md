@@ -14,6 +14,14 @@ The program works in the background and waits only for inactivity to move the mo
 
 ## Latest changes
 
+Release v1.2.0:
+
+* Rewrite `scripts/install.sh` for Debian/Ubuntu: system packages, uinput (kernel module, udev rule, user group), virtualenv, and pip install from `scripts/requirements.txt`
+* Add missing system dependencies (X11/XSS idle fallback, `libudev-dev`, Python build tools, GTK4/GIO stack)
+* Improve `scripts/requirements.txt` with `wheel` and minimum versions for `pycairo`, `PyGObject`, `setuptools`, and `python-uinput`
+* Fallback to vendored `libs/python-uinput-1.0.1` when PyPI install fails
+* Verify core imports (`gi`, `Gdk`, `Gio`, `uinput`) at the end of installation
+
 Release v1.1.6:
 
 * Auto install dependencies depending on OS platform and py version
