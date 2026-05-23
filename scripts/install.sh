@@ -5,8 +5,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 REQUIREMENTS="${SCRIPT_DIR}/requirements.txt"
-LOCAL_UINPUT="${PROJECT_ROOT}/libs/python-uinput-1.0.1"
-UDEV_RULES="${LOCAL_UINPUT}/udev-rules/40-uinput.rules"
+UDEV_RULES="${SCRIPT_DIR}/udev-rules/40-uinput.rules"
 VENV_DIR="${PROJECT_ROOT}/.venv"
 
 APT_PACKAGES=(
@@ -59,12 +58,28 @@ run_as_root() {
     fi
 }
 
-install_system_deps() {
-    log "Actualizando índice de paquetes..."
-    run_as_root apt-get update -qq
+is_pkg_installed() {
+    dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -q "install ok installed"
+}
 
-    log "Instalando dependencias del sistema..."
-    run_as_root apt-get install -y --no-install-recommends "${APT_PACKAGES[@]}"
+install_system_deps() {
+    local missing=()
+    local pkg
+
+    for pkg in "${APT_PACKAGES[@]}"; do
+        if ! is_pkg_installed "${pkg}"; then
+            missing+=("${pkg}")
+        fi
+    done
+
+    if ((${#missing[@]} == 0)); then
+        log "Dependencias de Ubuntu/Debian ya instaladas."
+        return
+    fi
+
+    log "Faltan ${#missing[@]} paquete(s) del sistema; instalando..."
+    run_as_root apt-get update -qq
+    run_as_root apt-get install -y --no-install-recommends "${missing[@]}"
 }
 
 load_uinput_module() {
@@ -109,23 +124,10 @@ ensure_venv() {
     else
         log "Usando entorno virtual existente en ${VENV_DIR}."
     fi
-}
 
-install_python_uinput() {
-  local pip="${VENV_DIR}/bin/pip"
-
-  log "Instalando python-uinput desde PyPI..."
-  if "${pip}" install "python-uinput>=0.11.2"; then
-    return 0
-  fi
-
-  if [[ -d "${LOCAL_UINPUT}" ]]; then
-    log "PyPI falló; instalando python-uinput local desde ${LOCAL_UINPUT}..."
-    "${pip}" install "${LOCAL_UINPUT}"
-    return 0
-  fi
-
-  die "No se pudo instalar python-uinput."
+    log "Activando entorno virtual..."
+    # shellcheck source=/dev/null
+    source "${VENV_DIR}/bin/activate"
 }
 
 install_python_deps() {
@@ -133,18 +135,14 @@ install_python_deps() {
 
     ensure_venv
 
-    local pip="${VENV_DIR}/bin/pip"
     log "Actualizando pip..."
-    "${pip}" install --upgrade pip wheel setuptools
+    python -m pip install --upgrade pip wheel setuptools
 
-    log "Instalando dependencias desde ${REQUIREMENTS}..."
-    # python-uinput se instala aparte por el fallback local vendoreado.
-    grep -Ev '^[[:space:]]*(#|$)|^python-uinput' "${REQUIREMENTS}" | "${pip}" install -r /dev/stdin
-
-    install_python_uinput
+    log "Instalando dependencias desde ${REQUIREMENTS} (PyPI)..."
+    python -m pip install -r "${REQUIREMENTS}"
 
     log "Verificando imports principales..."
-    "${VENV_DIR}/bin/python3" - <<'PY'
+    python - <<'PY'
 import gi
 gi.require_version("Gtk", "4.0")
 gi.require_version("Gdk", "4.0")
@@ -167,6 +165,7 @@ main() {
 
     log "Instalación completada."
     log "Ejecuta: ${VENV_DIR}/bin/python3 ${PROJECT_ROOT}/kps.py"
+    log "O usa: ${PROJECT_ROOT}/.run"
     if [[ -n "${SUDO_USER:-}" ]] || [[ -n "${USER:-}" ]]; then
         log "Si acabas de unirte al grupo uinput, cierra sesión y vuelve a entrar."
     fi

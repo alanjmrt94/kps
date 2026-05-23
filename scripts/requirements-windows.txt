@@ -1,0 +1,2 @@
+# Dependencias Python de kps (Windows)
+pyautogui>=0.9.54

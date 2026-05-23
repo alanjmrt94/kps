@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Linux: instala dependencias y ejecuta kps.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+"${ROOT}/scripts/install.sh"
+exec "${ROOT}/.venv/bin/python3" "${ROOT}/kps.py" "$@"

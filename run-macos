@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# macOS: instala dependencias y ejecuta kps.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+"${ROOT}/scripts/install-macos.sh"
+exec "${ROOT}/.venv/bin/python3" "${ROOT}/kps.py" "$@"
