@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import grp
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -27,6 +29,13 @@ import pyautogui
 _VERIFY_MACOS = """
 import pyautogui
 from Quartz import CGEventSourceSecondsSinceLastEventType
+"""
+
+_UINPUT_DEVICE_TEST = """
+import uinput
+events = (uinput.REL_X, uinput.REL_Y, uinput.BTN_LEFT, uinput.BTN_RIGHT)
+with uinput.Device(events) as device:
+    device.emit(uinput.REL_X, 1)
 """
 
 
@@ -108,15 +117,30 @@ def run_platform_install() -> None:
         _run(["bash", str(script)])
 
 
+def venv_has_system_site_packages() -> bool:
+    """Comprueba si .venv fue creado con --system-site-packages."""
+    cfg = venv_dir() / "pyvenv.cfg"
+    if not cfg.is_file():
+        return False
+    return "include-system-site-packages = true" in cfg.read_text(encoding="utf-8")
+
+
 def ensure_venv() -> Path:
-    """Crea .venv una sola vez si no existe."""
+    """Crea .venv una sola vez si no existe (Linux: --system-site-packages)."""
     path = venv_dir()
     if path.is_dir():
-        print(f"[kps] Entorno virtual existente: {path}")
-        return path
+        if detect_os() == "linux" and not venv_has_system_site_packages():
+            print("[kps] Recreando venv (faltaba --system-site-packages)...")
+            shutil.rmtree(path)
+        else:
+            print(f"[kps] Entorno virtual existente: {path}")
+            return path
 
     print(f"[kps] Creando entorno virtual en {path}...")
-    _run([sys.executable, "-m", "venv", str(path)])
+    cmd = [sys.executable, "-m", "venv", str(path)]
+    if detect_os() == "linux":
+        cmd.insert(3, "--system-site-packages")
+    _run(cmd)
     return path
 
 
@@ -169,6 +193,115 @@ def verify_imports() -> bool:
 def test_package() -> bool:
     """Comprueba que el entorno está listo para ejecutar kps."""
     return verify_imports()
+
+
+def is_in_uinput_group() -> bool:
+    """Indica si el usuario actual pertenece al grupo uinput."""
+    try:
+        uinput_gid = grp.getgrnam("uinput").gr_gid
+    except KeyError:
+        return False
+    return uinput_gid in os.getgroups()
+
+
+def describe_uinput_issue() -> str:
+    """Mensaje de ayuda según el estado de /dev/uinput y el grupo uinput."""
+    uinput_dev = Path("/dev/uinput")
+    if not uinput_dev.exists():
+        return (
+            "El dispositivo /dev/uinput no existe. "
+            "Ejecuta: sudo modprobe uinput (o ./scripts/install.sh)."
+        )
+    if can_access_uinput():
+        return ""
+    if is_in_uinput_group():
+        return (
+            "Perteneces al grupo uinput pero aún no tienes acceso efectivo. "
+            "Cierra sesión y vuelve a entrar (o reinicia el equipo)."
+        )
+    return (
+        "No tienes acceso a /dev/uinput. Ejecuta ./scripts/install.sh "
+        "y cierra sesión tras unirte al grupo uinput."
+    )
+
+
+def verify_uinput_device() -> bool:
+    """Prueba abrir uinput y emitir un evento mínimo (sin sudo)."""
+    if detect_os() != "linux":
+        return True
+
+    py = venv_python()
+    if not py.is_file():
+        return False
+
+    print("[kps] Probando acceso uinput (sin sudo)...")
+    result = subprocess.run(
+        [str(py), "-c", _UINPUT_DEVICE_TEST.strip()],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode == 0:
+        print("[kps] OK: uinput operativo sin sudo.")
+        return True
+
+    print("[kps] ERROR: uinput no operativo.")
+    if result.stderr:
+        print(result.stderr.strip())
+    hint = describe_uinput_issue()
+    if hint:
+        print(f"[kps] {hint}")
+    return False
+
+
+def can_access_uinput() -> bool:
+    """Comprueba acceso de lectura/escritura a /dev/uinput en Linux."""
+    if detect_os() != "linux":
+        return True
+    uinput_dev = Path("/dev/uinput")
+    if not uinput_dev.exists():
+        return False
+    return os.access(uinput_dev, os.R_OK | os.W_OK)
+
+
+def verify_setup() -> None:
+    """Comprueba venv, imports y permisos antes de ejecutar kps."""
+    print("[kps] Verificando entorno...")
+    if not venv_dir().is_dir():
+        raise RuntimeError(
+            "No hay entorno virtual (.venv). Ejecuta ./scripts/install.sh o ./run"
+        )
+    if not verify_imports():
+        raise RuntimeError("Los imports no están disponibles en el venv.")
+    if detect_os() == "linux":
+        issue = describe_uinput_issue()
+        if issue:
+            raise RuntimeError(issue)
+        if not verify_uinput_device():
+            raise RuntimeError(
+                "No se pudo usar uinput sin sudo. "
+                "Revisa permisos de /dev/uinput y el grupo uinput."
+            )
+    print("[kps] Entorno listo.")
+
+
+def ensure_venv_runtime() -> None:
+    """Re-ejecuta kps con el Python del venv si aún no lo usa."""
+    vpy = venv_python()
+    if not vpy.is_file():
+        return
+    if Path(sys.executable).resolve() == vpy.resolve():
+        return
+    print(f"[kps] Cambiando al intérprete del venv: {vpy}")
+    os.execv(str(vpy), [str(vpy), *sys.argv])
+
+
+def setup_environment() -> None:
+    """Instala dependencias si faltan, verifica el entorno y activa el venv."""
+    if not test_package():
+        autoinstall()
+    verify_setup()
+    ensure_venv_runtime()
 
 
 def autoinstall() -> None:

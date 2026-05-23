@@ -18,8 +18,10 @@ APT_PACKAGES=(
     python3-gi
     python3-gi-cairo
     gir1.2-gtk-4.0
-    gir1.2-gio-2.0
+    gir1.2-glib-2.0
+    gir1.2-girepository-2.0-dev
     gobject-introspection
+    libgirepository-2.0-dev
     libgirepository1.0-dev
     libcairo2
     libcairo2-dev
@@ -62,14 +64,38 @@ is_pkg_installed() {
     dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -q "install ok installed"
 }
 
+is_pkg_satisfied() {
+    local pkg=$1
+
+    if is_pkg_installed "${pkg}"; then
+        return 0
+    fi
+
+    # En Ubuntu reciente GIO viene dentro del GIR de GLib
+    if [[ "${pkg}" == "gir1.2-gio-2.0" ]] && is_pkg_installed "gir1.2-glib-2.0"; then
+        return 0
+    fi
+
+    return 1
+}
+
+apt_pkg_exists() {
+    apt-cache show "$1" &>/dev/null
+}
+
 install_system_deps() {
     local missing=()
     local pkg
 
     for pkg in "${APT_PACKAGES[@]}"; do
-        if ! is_pkg_installed "${pkg}"; then
-            missing+=("${pkg}")
+        if is_pkg_satisfied "${pkg}"; then
+            continue
         fi
+        if ! apt_pkg_exists "${pkg}"; then
+            log "Aviso: el paquete ${pkg} no existe en apt; se omite."
+            continue
+        fi
+        missing+=("${pkg}")
     done
 
     if ((${#missing[@]} == 0)); then
@@ -77,7 +103,7 @@ install_system_deps() {
         return
     fi
 
-    log "Faltan ${#missing[@]} paquete(s) del sistema; instalando..."
+    log "Faltan ${#missing[@]} paquete(s) del sistema; instalando: ${missing[*]}"
     run_as_root apt-get update -qq
     run_as_root apt-get install -y --no-install-recommends "${missing[@]}"
 }
@@ -118,11 +144,23 @@ setup_uinput_permissions() {
 }
 
 ensure_venv() {
+    if [[ -d "${VENV_DIR}" ]]; then
+        if [[ ! -f "${VENV_DIR}/pyvenv.cfg" ]] \
+            || ! grep -q 'include-system-site-packages = true' "${VENV_DIR}/pyvenv.cfg"; then
+            log "El venv existente no incluye paquetes del sistema; recreando ${VENV_DIR}..."
+            rm -rf "${VENV_DIR}"
+        else
+            log "Usando entorno virtual existente en ${VENV_DIR}."
+        fi
+    fi
+
     if [[ ! -d "${VENV_DIR}" ]]; then
-        log "Creando entorno virtual en ${VENV_DIR}..."
-        python3 -m venv "${VENV_DIR}"
-    else
-        log "Usando entorno virtual existente en ${VENV_DIR}."
+        log "Creando entorno virtual en ${VENV_DIR} (--system-site-packages)..."
+        python3 -m venv --system-site-packages "${VENV_DIR}"
+    fi
+
+    if [[ ! -x "${VENV_DIR}/bin/python3" ]]; then
+        die "No se encontró ${VENV_DIR}/bin/python3 tras crear el venv."
     fi
 
     log "Activando entorno virtual..."
@@ -130,19 +168,26 @@ ensure_venv() {
     source "${VENV_DIR}/bin/activate"
 }
 
+venv_python() {
+    echo "${VENV_DIR}/bin/python3"
+}
+
 install_python_deps() {
     [[ -f "${REQUIREMENTS}" ]] || die "No se encontró ${REQUIREMENTS}."
 
     ensure_venv
 
-    log "Actualizando pip..."
-    python -m pip install --upgrade pip wheel setuptools
+    local py
+    py="$(venv_python)"
 
-    log "Instalando dependencias desde ${REQUIREMENTS} (PyPI)..."
-    python -m pip install -r "${REQUIREMENTS}"
+    log "Actualizando pip..."
+    "${py}" -m pip install --upgrade pip wheel setuptools
+
+    log "Instalando dependencias pip desde ${REQUIREMENTS} (PyGObject/pycairo vía apt)..."
+    "${py}" -m pip install -r "${REQUIREMENTS}"
 
     log "Verificando imports principales..."
-    python - <<'PY'
+    "${py}" - <<'PY'
 import gi
 gi.require_version("Gtk", "4.0")
 gi.require_version("Gdk", "4.0")

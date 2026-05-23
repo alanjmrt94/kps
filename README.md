@@ -13,12 +13,12 @@ The program works in the background and waits only for inactivity to move the mo
 
 ## Latest changes
 
-Release v1.2.0:
+Release **v1.3.0** — Linux install fixes (Ubuntu 24.04+):
 
-* **Fase 0:** refactor de `kps.py`, permisos, `utils/__init__.py`, backlog migrado al plan, `python-uinput` vía pip
-* **Linux:** `scripts/install.sh` — apt solo si faltan paquetes, `.venv`, `source .venv/bin/activate`, pip desde `scripts/requirements.txt`, udev/uinput
-* **Windows / macOS:** `scripts/install.bat`, `scripts/install-macos.sh` y requirements por plataforma
-* **Lanzadores:** `.run` (Linux), `run.bat` (Windows), `run-macos` (macOS) — instalan y ejecutan `kps.py`
+* **Venv:** `--system-site-packages`; recrea `.venv` automáticamente si es incompatible
+* **PyGObject:** desde apt (`python3-gi`), no compila desde pip
+* **apt:** `libgirepository-2.0-dev`, `gir1.2-glib-2.0`; detección de paquetes corregida
+* **pip (Linux):** solo `python-uinput`
 
 See [CHANGES.md](CHANGES.md) for full release notes.
 
@@ -33,7 +33,7 @@ Clone the repository:
 
 Instalar y ejecutar en un paso:
 
-    ./.run
+    ./run
 
 Solo instalar:
 
@@ -76,7 +76,7 @@ Use `-h` to see available options. Example:
 
 | Plataforma | Script install | Requirements pip | Lanzador |
 |------------|----------------|------------------|----------|
-| Linux | `scripts/install.sh` | `scripts/requirements.txt` | `.run` |
+| Linux | `scripts/install.sh` | `scripts/requirements.txt` | `run` |
 | Windows | `scripts/install.bat` | `scripts/requirements-windows.txt` | `run.bat` |
 | macOS | `scripts/install-macos.sh` | `scripts/requirements-macos.txt` | `run-macos` |
 
@@ -100,11 +100,33 @@ Use `-h` to see available options. Example:
 
 All Python packages are installed from **PyPI** into `.venv` at the project root.
 
+### Linux: permisos uinput (sin sudo)
+
+kps mueve el cursor vía `/dev/uinput`. **No se usa sudo en runtime.**
+
+1. Ejecuta `./scripts/install.sh` (o `./run`). El script:
+   - carga el módulo `uinput` del kernel
+   - instala la regla udev en `/etc/udev/rules.d/40-uinput.rules`
+   - añade tu usuario al grupo `uinput`
+2. **Cierra sesión y vuelve a entrar** (o reinicia) para que el grupo surta efecto.
+3. Verifica acceso:
+
+       ls -l /dev/uinput
+       groups
+
+   Deberías ver el grupo `uinput` y permisos `crw-rw----` con grupo `uinput`.
+
+4. Al arrancar, `kps.py` comprueba imports y abre uinput **sin sudo**. Si falla, muestra un mensaje con el paso siguiente.
+
+**Regla udev** (`scripts/udev-rules/40-uinput.rules`):
+
+    SUBSYSTEM=="misc", KERNEL=="uinput", MODE="0660", GROUP="uinput"
+
 ## Project layout (install/run)
 
 ```
 kps/
-├── .run                    # Linux: install + run
+├── run                    # Linux: install + run
 ├── run.bat                 # Windows: install + run
 ├── run-macos               # macOS: install + run
 ├── kps.py                  # Main program

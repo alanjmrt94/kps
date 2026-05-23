@@ -1,35 +1,145 @@
 # Release notes
 
+## 1.3.0
+
+**Fix Linux install on Ubuntu 24.04+** — venv, PyGObject y apt.
+
+### Resumen
+
+* Venv Linux con `--system-site-packages` (PyGObject/pycairo desde apt, no compila pip)
+* Recreación automática de `.venv` si no incluye paquetes del sistema
+* Dependencias apt corregidas para GIRepository 2.0 (`libgirepository-2.0-dev`)
+* Comprobación apt más robusta (`gir1.2-glib-2.0` en lugar de `gir1.2-gio-2.0`)
+* Pip en Linux: solo `python-uinput` (+ wheel/setuptools)
+
+### Cambios en `scripts/install.sh`
+
+* Usar `.venv/bin/python3` explícitamente (Debian no siempre expone `python` en el venv)
+* Detectar venv incompatible y recrearlo sin intervención manual
+* `is_pkg_satisfied()` / `apt_pkg_exists()` — evita falsos “falta 1 paquete” sin instalar nada
+* Paquetes apt añadidos: `libgirepository-2.0-dev`, `gir1.2-girepository-2.0-dev`
+
+### Cambios en `scripts/requirements.txt` (Linux)
+
+* Eliminados `PyGObject` y `pycairo` del pip (provistos por `python3-gi` / `python3-gi-cairo`)
+
+### `utils/install.py`
+
+* `ensure_venv()` alineado con `--system-site-packages` en Linux
+* Recreación automática del venv si falta `system-site-packages`
+
+---
+
 ## 1.2.0
+
+**Fix installation and startup flow** — Fase 0 + Fase 1 completadas.
+
+### Resumen
+
+* Instalación multiplataforma con scripts dedicados y lanzadores (`run`, `run.bat`, `run-macos`)
+* Entorno virtual único (`.venv`) con dependencias pip desde PyPI
+* Arranque de `kps.py` sin contraseña sudo en runtime
+* uinput configurado vía udev + grupo `uinput` (sudo solo en `install.sh`)
+* Verificación automática del entorno antes del bucle principal
+
+---
 
 ### Fase 0 — Consolidación
 
-* Refactor de `kps.py`: type hints, constantes (`AWAY_TIME`, `POLL_INTERVAL`), imports al inicio, fix de contraseña sudo en el bucle de movimiento del ratón
+* Refactor de `kps.py`: type hints, constantes (`AWAY_TIME`, `POLL_INTERVAL`), mejor estructura
 * Restaurar `utils/__init__.py` vacío como marcador de paquete Python
-* Normalizar permisos: `644` en código y docs; `755` solo en scripts ejecutables (`.run`, `install.sh`, etc.)
+* Normalizar permisos: `644` en código/docs; `755` solo en scripts ejecutables
 * Migrar backlog de `_NOTES.MD` al plan de desarrollo (§11) y eliminar el archivo suelto
-* Decisión `python-uinput`: instalación exclusiva vía **pip/PyPI** (sin lib vendoreada en `libs/`)
+* `python-uinput` instalado exclusivamente vía **pip/PyPI** (sin lib vendoreada en `libs/`)
+* Lanzadores multiplataforma en la raíz del proyecto
 
-### Instalación y lanzadores multiplataforma
+### Instalación y lanzadores
 
-* Reescribir `scripts/install.sh` (Debian/Ubuntu):
+* **`scripts/install.sh`** (Debian/Ubuntu):
   * Instala paquetes apt **solo si faltan**
   * Crea `.venv` con `python3 -m venv .venv`
   * Activa el entorno con `source .venv/bin/activate`
-  * Instala dependencias pip desde `scripts/requirements.txt`
-  * Configura uinput: módulo kernel, regla udev (`scripts/udev-rules/`), grupo `uinput`
+  * Instala pip deps desde `scripts/requirements.txt`
+  * Configura uinput: módulo kernel, regla udev, grupo `uinput`
   * Verifica imports (`gi`, `Gdk`, `Gio`, `uinput`)
-* Añadir `scripts/install.bat` (Windows) y `scripts/install-macos.sh` (macOS) con el mismo flujo: venv → activate → pip
-* Añadir `scripts/requirements-windows.txt` y `scripts/requirements-macos.txt`
-* Añadir lanzadores en la raíz del proyecto:
-  * **Linux:** `.run` → `install.sh` + `kps.py`
-  * **Windows:** `run.bat` → `install.bat` + `kps.py`
-  * **macOS:** `run-macos` → `install-macos.sh` + `kps.py`
+* **`scripts/install.bat`** (Windows) y **`scripts/install-macos.sh`** (macOS): venv → activate → pip
+* **`scripts/requirements-windows.txt`** y **`scripts/requirements-macos.txt`**
+* **`scripts/udev-rules/40-uinput.rules`** — permisos `0660` para grupo `uinput`
+* Lanzadores: **`run`** (Linux), **`run.bat`** (Windows), **`run-macos`** (macOS)
 
-### Documentación
+---
 
-* Actualizar `README.md` con instalación por plataforma y uso de lanzadores
-* Plan de desarrollo en `.cursor/plans/kps_desarrollo_completo.plan.md`
+### Fase 1 — Instalación y arranque
+
+#### `utils/install.py` (reescrito)
+
+* `detect_os()` — linux / windows / macos
+* `run_platform_install()` — delega al script install del OS
+* `ensure_venv()` — crea `.venv` una sola vez (corrige bug de recrear venv por paquete)
+* `install_pip_deps()` — fallback pip desde Python
+* `verify_imports()` — comprueba deps en el venv por plataforma
+* `verify_setup()` — venv + imports + uinput en Linux
+* `verify_uinput_device()` — prueba real de `/dev/uinput` sin sudo
+* `is_in_uinput_group()` / `describe_uinput_issue()` — diagnóstico y mensajes de re-login
+* `ensure_venv_runtime()` — re-ejecuta kps con el Python del venv
+* `setup_environment()` — orquesta install + verify + venv runtime
+* `autoinstall()` / alias `Autoinstall` — API pública de instalación
+
+#### `kps.py` (nuevo flujo)
+
+```
+CLI → setup_environment() → move_mouse()
+```
+
+* Eliminados `getpass`, `sudo` y `echo {pwd} | sudo -S` del runtime
+* Import tardío de `Monitor` (PyGObject solo tras activar venv)
+* `run_move()` usa `.venv/bin/python3 utils/move.py` (sin sudo)
+* Errores de movimiento capturados con mensaje en stderr
+
+#### `utils/move.py`
+
+* Errores claros (`PermissionError`, `OSError`) con instrucciones en español
+* Exit codes para uso desde subprocess
+
+#### Seguridad
+
+* Sin contraseñas en shell ni en el bucle de movimiento del ratón
+* Elevación con `sudo` **solo** en `scripts/install.sh` (setup one-time, prompt interactivo)
+
+#### Documentación
+
+* `README.md` — quick start, tabla de scripts, permisos uinput sin sudo, re-login
+* `scripts/README.md` — flujo de install por plataforma y verificación post-install
+
+---
+
+### Cambios respecto a 1.1.6
+
+| Antes (1.1.6) | Ahora (1.2.0) |
+|---------------|---------------|
+| `utils/install.py` recreaba `.venv` en cada paquete pip | venv único; install delegado a scripts |
+| `Autoinstall()` después de sudo al inicio | `setup_environment()` antes del bucle |
+| Contraseña sudo en cada movimiento del ratón | uinput vía grupo `uinput`, sin sudo en runtime |
+| `python3 kps.py` con Python del sistema | Re-ejecución automática con Python del venv |
+| README: "Pure Python, no C modules" | Deps reales documentadas (PyGObject, uinput, etc.) |
+| Sin lanzadores | `run`, `run.bat`, `run-macos` |
+
+### Migración desde 1.1.6
+
+1. Clonar/actualizar el repo
+2. Ejecutar `./scripts/install.sh` (o `./run`)
+3. **Cerrar sesión y volver a entrar** (grupo `uinput`)
+4. Verificar: `groups` incluye `uinput`; `ls -l /dev/uinput` muestra `crw-rw---- root uinput`
+5. Ejecutar `./run` o `.venv/bin/python3 kps.py`
+
+### Limitaciones conocidas (1.2.0)
+
+* Windows: `utils/move.bat` aún no implementado (Fase 3.2)
+* macOS: move nativo pendiente (Fase 3.3)
+* `utils/install.py` legacy en 1.1.6 reemplazado; usar scripts + `setup_environment()`
+* Prueba en Ubuntu limpio (VM) recomendada antes de publicar
+
+---
 
 ## 1.1.6
 

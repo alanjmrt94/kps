@@ -1,18 +1,18 @@
+"""kps — evita inactividad moviendo el cursor cuando el usuario está ausente."""
+
 import argparse
 import os
+import subprocess
+import sys
 import time
 from datetime import datetime
-from getpass import getpass
-from subprocess import call
-from utils.const import OsType
 
-from utils.idle import Monitor
-from utils.install import Autoinstall
+from utils.const import OsType
+from utils.install import project_root, setup_environment, venv_python
 from utils.version import App_version
 
 AWAY_TIME = 2
 POLL_INTERVAL = 5
-LINUX_CMD = "python3 ./utils/move.py"
 WINDOWS_CMD = "cmd /c utils/move.bat"
 
 
@@ -38,7 +38,7 @@ def commandline() -> None:
     args = parser.parse_args()
 
     if args.time:
-        global AWAY_TIME
+        global AWAY_TIME  # pylint: disable=global-statement
         AWAY_TIME = int(args.time)
 
     print("Set move mouse time every", str(AWAY_TIME), "seconds of inactivity.\n")
@@ -55,20 +55,37 @@ def get_now_timestamp() -> str:
     return now.strftime("%H:%M:%S")
 
 
-def move_mouse(pwd: str | None) -> None:
-    """
-    Move the mouse cursor if the user is away for more than the set time
-    with sudo password if the system is Linux, otherwise call the command without sudo
+def run_move() -> None:
+    """Ejecuta el script de movimiento del ratón según la plataforma."""
+    if os.name == OsType.WINDOWS:
+        os.system(WINDOWS_CMD)
+        return
 
-    Args:
-        pwd: sudo password if the system is Linux, otherwise None
+    move_py = project_root() / "utils" / "move.py"
+    result = subprocess.run(
+        [str(venv_python()), str(move_py)],
+        cwd=project_root(),
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        print(get_now_timestamp(), "ERROR: no se pudo mover el ratón.")
+        if result.stderr:
+            print(result.stderr.strip())
+
+
+def move_mouse() -> None:
+    """
+    Mueve el cursor si el usuario lleva más de AWAY_TIME segundos inactivo.
+
     Returns:
         None
     """
-    # Set the command based on OS type
-    cmd = WINDOWS_CMD if os.name == OsType.WINDOWS else LINUX_CMD
+    # Import tardío: requiere PyGObject del venv tras setup_environment()
+    from utils.idle import Monitor  # pylint: disable=import-outside-toplevel
 
-    while 1:
+    while True:
         seconds = Monitor.get_idle_sec()
         if seconds > AWAY_TIME:
             print(
@@ -77,17 +94,13 @@ def move_mouse(pwd: str | None) -> None:
                 AWAY_TIME,
                 "seconds. Moving mouse...",
             )
-            if pwd is None:
-                os.system(cmd)
-            else:
-                call(f"echo {pwd} | sudo -S {cmd}", shell=True)
+            run_move()
         else:
             print(get_now_timestamp(), "User activity detected")
             time.sleep(POLL_INTERVAL)
-    return
 
 
-def main():
+def main() -> None:
     """
     Main function to run the program
 
@@ -98,16 +111,13 @@ def main():
     print("kps v" + App_version())
     commandline()
 
-    if os.name == OsType.WINDOWS:
-        move_mouse(None)
-    else:
-        print("On Linux, you must enter your sudo password for it to work: ")
-        pwd = getpass()
-        # Fix: Set the command before using it
-        cmd = LINUX_CMD
-        call(f"echo {pwd} | sudo -S {cmd}", shell=True)
-        Autoinstall()
-        move_mouse(pwd)
+    try:
+        setup_environment()
+    except RuntimeError as error:
+        print(f"[kps] ERROR: {error}", file=sys.stderr)
+        sys.exit(1)
+
+    move_mouse()
 
 
 if __name__ == "__main__":

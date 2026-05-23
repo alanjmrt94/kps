@@ -54,9 +54,17 @@ ensure_venv() {
         log "Usando entorno virtual existente en ${VENV_DIR}."
     fi
 
+    if [[ ! -x "${VENV_DIR}/bin/python3" ]]; then
+        die "No se encontró ${VENV_DIR}/bin/python3 tras crear el venv."
+    fi
+
     log "Activando entorno virtual..."
     # shellcheck source=/dev/null
     source "${VENV_DIR}/bin/activate"
+}
+
+venv_python() {
+    echo "${VENV_DIR}/bin/python3"
 }
 
 install_python_deps() {
@@ -64,14 +72,17 @@ install_python_deps() {
 
     ensure_venv
 
+    local py
+    py="$(venv_python)"
+
     log "Actualizando pip..."
-    python -m pip install --upgrade pip wheel setuptools
+    "${py}" -m pip install --upgrade pip wheel setuptools
 
     log "Instalando dependencias desde ${REQUIREMENTS} (PyPI)..."
-    python -m pip install -r "${REQUIREMENTS}"
+    "${py}" -m pip install -r "${REQUIREMENTS}"
 
     log "Verificando imports principales..."
-    python - <<'PY'
+    "${py}" - <<'PY'
 import pyautogui
 from Quartz import CGEventSourceSecondsSinceLastEventType
 print("OK: pyautogui, Quartz")
