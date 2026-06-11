@@ -327,6 +327,27 @@ def test_desktop_idle_monitor_darwin_branch() -> None:
         assert monitor.get_idle_sec() == 4
 
 
+def test_monitor_alias_desktop_on_win32_import() -> None:
+    """Cubre Monitor = DesktopIdleMonitor() en plataformas win32."""
+    import importlib
+
+    import utils.idle as idle
+
+    orig = sys.platform
+    windll = _mock_windll()
+    try:
+        with (
+            patch.object(idle.sys, "platform", "win32"),
+            patch.object(idle.ctypes, "windll", windll, create=True),
+        ):
+            importlib.reload(idle)
+        assert isinstance(idle.Monitor, idle.DesktopIdleMonitor)
+        assert idle.Monitor.is_available()
+    finally:
+        with patch.object(idle.sys, "platform", orig):
+            importlib.reload(idle)
+
+
 def test_desktop_idle_monitor_win32_branch() -> None:
     import utils.idle as idle
 

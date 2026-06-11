@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import builtins
 import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -202,12 +203,24 @@ def test_describe_uinput_paths() -> None:
         assert "install.sh" in install.describe_uinput_issue()
 
 
+def test_is_in_uinput_group_no_grp_module() -> None:
+    real_import = builtins.__import__
+
+    def fake_import(name: str, *args, **kwargs):  # type: ignore[no-untyped-def]
+        if name == "grp":
+            raise ModuleNotFoundError("No module named 'grp'")
+        return real_import(name, *args, **kwargs)
+
+    with patch("builtins.__import__", side_effect=fake_import):
+        assert install.is_in_uinput_group() is False
+
+
 def test_is_in_uinput_group() -> None:
-    with patch.object(install.grp, "getgrnam", side_effect=KeyError):
+    with patch("grp.getgrnam", side_effect=KeyError):
         assert install.is_in_uinput_group() is False
     group = MagicMock(gr_gid=42)
     with (
-        patch.object(install.grp, "getgrnam", return_value=group),
+        patch("grp.getgrnam", return_value=group),
         patch.object(install.os, "getgroups", return_value=[42]),
     ):
         assert install.is_in_uinput_group() is True
@@ -242,6 +255,14 @@ def test_verify_uinput_device() -> None:
         patch.object(install, "venv_python", return_value=py),
         patch.object(install.subprocess, "run", return_value=fail),
         patch.object(install, "describe_uinput_issue", return_value="hint"),
+    ):
+        assert install.verify_uinput_device() is False
+    fail_no_hint = subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr="")
+    with (
+        patch.object(install, "detect_os", return_value="linux"),
+        patch.object(install, "venv_python", return_value=py),
+        patch.object(install.subprocess, "run", return_value=fail_no_hint),
+        patch.object(install, "describe_uinput_issue", return_value=""),
     ):
         assert install.verify_uinput_device() is False
     with patch.object(install, "detect_os", return_value="windows"):
@@ -383,6 +404,17 @@ def test_verify_runtime_linux_uinput_verify_fail(tmp_path: Path) -> None:
 def test_import_check_result_no_python() -> None:
     with patch.object(install, "venv_python", return_value=MagicMock(is_file=MagicMock(return_value=False))):
         assert install._run_import_check() is False
+
+
+def test_verify_imports_failure_empty_stderr() -> None:
+    fail = subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr="")
+    py = MagicMock()
+    py.is_file.return_value = True
+    with (
+        patch.object(install, "venv_python", return_value=py),
+        patch.object(install, "_import_check_result", return_value=fail),
+    ):
+        assert install.verify_imports() is False
 
 
 def test_verify_imports_stderr(capsys: pytest.CaptureFixture[str]) -> None:

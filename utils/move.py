@@ -3,19 +3,18 @@
 import sys
 import time
 
-import uinput  # pylint: disable=import-error
-
-EVENTS = (
-    uinput.REL_X,
-    uinput.REL_Y,
-    uinput.BTN_LEFT,
-    uinput.BTN_RIGHT,
-)
-
 
 def move_once() -> None:
     """Realiza un pequeño movimiento horizontal del cursor."""
-    with uinput.Device(EVENTS) as device:
+    import uinput  # pylint: disable=import-outside-toplevel,import-error
+
+    events = (
+        uinput.REL_X,
+        uinput.REL_Y,
+        uinput.BTN_LEFT,
+        uinput.BTN_RIGHT,
+    )
+    with uinput.Device(events) as device:
         for i in range(3):
             if i == 2:
                 device.emit(uinput.REL_X, -75)

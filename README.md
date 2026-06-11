@@ -13,10 +13,16 @@ The program works in the background and waits only for inactivity to move the mo
 
 ## Latest changes
 
+Release **v1.6.2** — CI multiplataforma y cobertura 100% (parche 1.6.1):
+
+* **152 tests**, cobertura **100%** en `utils/` + `kps`
+* Matrix **Linux 3.10–3.12** y **Windows** verdes en GitHub Actions
+* Polyfill **`StrEnum`** (Python 3.10), `grp`/`uinput` sin romper collectors en CI
+* Job `test-linux`: deps GObject (apt + PyGObject) para tests de idle
+
 Release **v1.6.1** — tests y validación (parche 1.6.0):
 
 * **144 tests**, cobertura **~99%** (umbral CI ≥ 95%)
-* **CI remoto** verde (GitHub Actions: lint + Linux 3.10–3.12 + Windows)
 * **Ubuntu limpio (VM)**: `./run` de cero validado
 * Pylint en CI sin falsos positivos por `gi` (dep de apt)
 
@@ -244,7 +250,7 @@ Instalar en modo editable con dependencias de desarrollo:
 
 Ejecutar tests y lint:
 
-    pytest          # cobertura ≥ 95% (utils + kps)
+    pytest          # cobertura 100% obligatoria (utils + kps)
     pylint kps.py utils/*.py
 
 CI en GitHub corre los mismos checks en cada push/PR a `main`/`master`.

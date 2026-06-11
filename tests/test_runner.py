@@ -143,6 +143,14 @@ def test_run_loop_activity_branch(
 
 
 @patch("utils.idle.Monitor")
+def test_run_loop_shutdown_before_loop(mock_monitor: MagicMock) -> None:
+    mock_monitor.is_available.return_value = True
+    ctrl = ShutdownController()
+    ctrl.request("ya detenido")
+    run_loop(KpsConfig(), ctrl)
+
+
+@patch("utils.idle.Monitor")
 @patch("utils.runner.run_move")
 @patch("utils.runner.interruptible_sleep", side_effect=[False, True])
 def test_run_loop_move_then_shutdown(

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import grp
 import os
 import shutil
 import subprocess
@@ -205,6 +204,10 @@ def test_package() -> bool:
 
 def is_in_uinput_group() -> bool:
     """Indica si el usuario actual pertenece al grupo uinput."""
+    try:
+        import grp  # pylint: disable=import-outside-toplevel
+    except ModuleNotFoundError:
+        return False
     try:
         uinput_gid = grp.getgrnam("uinput").gr_gid
     except KeyError:

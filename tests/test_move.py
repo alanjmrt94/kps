@@ -37,15 +37,26 @@ def test_move_win_and_mac_main() -> None:
         assert move_mac.main() == 1
 
 
-def test_move_linux_success() -> None:
+def test_move_once_with_uinput_mock() -> None:
     mock_uinput = MagicMock()
     device = MagicMock()
     device.__enter__ = MagicMock(return_value=device)
     device.__exit__ = MagicMock(return_value=False)
     mock_uinput.Device.return_value = device
-    mock_uinput.REL_X = 0
+    mock_uinput.REL_X = 1
+    mock_uinput.REL_Y = 2
+    mock_uinput.BTN_LEFT = 3
+    mock_uinput.BTN_RIGHT = 4
     with (
-        patch.object(move_linux, "uinput", mock_uinput),
+        patch.dict(sys.modules, {"uinput": mock_uinput}),
+        patch.object(move_linux.time, "sleep"),
+    ):
+        move_linux.move_once()
+    assert device.emit.call_count == 3
+
+
+def test_move_linux_success() -> None:
+    with (
         patch.object(move_linux, "move_once"),
         patch.object(move_linux.time, "sleep"),
     ):
@@ -75,8 +86,16 @@ def test_move_entrypoints_main() -> None:
         with pytest.raises(SystemExit) as exc:
             runpy.run_path(str(mac_path), run_name="__main__")
         assert exc.value.code == 1
-    with patch.object(move_linux, "move_once"):
-        with patch.object(move_linux.time, "sleep"):
-            with pytest.raises(SystemExit) as exc:
-                runpy.run_path(str(linux_path), run_name="__main__")
-            assert exc.value.code == 0
+    mock_uinput = MagicMock()
+    device = MagicMock()
+    device.__enter__ = MagicMock(return_value=device)
+    device.__exit__ = MagicMock(return_value=False)
+    mock_uinput.Device.return_value = device
+    mock_uinput.REL_X = 0
+    with (
+        patch.dict(sys.modules, {"uinput": mock_uinput}),
+        patch.object(move_linux.time, "sleep"),
+    ):
+        with pytest.raises(SystemExit) as exc:
+            runpy.run_path(str(linux_path), run_name="__main__")
+        assert exc.value.code == 0

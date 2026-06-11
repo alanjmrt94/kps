@@ -38,6 +38,16 @@ def test_install_signal_handlers() -> None:
     ShutdownController().install_signal_handlers()
 
 
+def test_install_signal_handlers_without_sigusr1() -> None:
+    def fake_hasattr(obj: object, name: str) -> bool:
+        if name == "SIGUSR1":
+            return False
+        return hasattr(obj, name)
+
+    with patch("utils.shutdown.hasattr", fake_hasattr):
+        ShutdownController().install_signal_handlers()
+
+
 def test_start_hotkey_none() -> None:
     ShutdownController().start_hotkey_listener(None)
 
@@ -68,6 +78,7 @@ def test_windows_vk_from_hotkey() -> None:
     assert _windows_vk_from_hotkey("f12") == 0x7B
     assert _windows_vk_from_hotkey("F1") == 0x70
     assert _windows_vk_from_hotkey("ctrl+c") is None
+    assert _windows_vk_from_hotkey("F13") is None
 
 
 def test_windows_hotkey_loop_register_fail() -> None:
@@ -112,3 +123,26 @@ def test_handle_signal_sigterm() -> None:
     ctrl = ShutdownController()
     ctrl._handle_signal(signal.SIGTERM, None)
     assert "SIGTERM" in ctrl.reason
+
+
+def test_windows_hotkey_loop_non_hotkey_message() -> None:
+    user32 = MagicMock()
+    user32.RegisterHotKey.return_value = 1
+    user32.GetMessageW.side_effect = [1, 0]
+    msg = MagicMock()
+    msg.message = 0x0000
+    mock_wintypes = MagicMock()
+    mock_wintypes.MSG.return_value = msg
+    mock_ctypes = MagicMock()
+    mock_ctypes.windll.user32 = user32
+    mock_ctypes.wintypes = mock_wintypes
+    mock_ctypes.byref.return_value = msg
+    with patch.dict(sys.modules, {"ctypes": mock_ctypes, "ctypes.wintypes": mock_wintypes}):
+        called: list[str] = []
+
+        def on_trigger(reason: str) -> None:
+            called.append(reason)
+
+        _windows_hotkey_loop(0x70, "f1", on_trigger)
+        assert called == []
+        user32.UnregisterHotKey.assert_called_once()

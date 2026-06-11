@@ -1,8 +1,16 @@
 """Constantes, enums y versión de kps."""
 
-from enum import StrEnum, unique
+import sys
+from enum import Enum, unique
 
-Version = "1.6.1"  # pylint: disable=invalid-name  # Mayor.minor.patch; usado por App_version()
+if sys.version_info >= (3, 11):
+    from enum import StrEnum
+else:
+
+    class StrEnum(str, Enum):  # type: ignore[misc]
+        """Compatibilidad StrEnum para Python 3.10."""
+
+Version = "1.6.2"  # pylint: disable=invalid-name  # Mayor.minor.patch; usado por App_version()
 
 # Tiempos por defecto (segundos)
 DEFAULT_AWAY_TIME = 2

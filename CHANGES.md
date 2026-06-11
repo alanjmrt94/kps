@@ -1,5 +1,36 @@
 # Release notes
 
+## 1.6.2
+
+**CI multiplataforma y cobertura completa (parche sobre 1.6.1).**
+
+### GitHub Actions
+
+* **`test-linux`** (Python 3.10, 3.11, 3.12): paso apt + `PyGObject` para tests de `utils/idle.py` en el runner
+* **`test-windows`**: imports Unix-only eliminados del arranque del módulo
+* Corrige fallos de collection por `gi`, `uinput` y `StrEnum` en la matrix completa
+
+### Código
+
+* **`StrEnum` en Python 3.10** — polyfill en `utils/const.py` (stdlib desde 3.11)
+* **`grp` solo Linux** — import diferido en `is_in_uinput_group()` (Windows en CI)
+* **`uinput` lazy** — import dentro de `move_once()` (collectors sin pip `python-uinput`)
+
+### Tests y cobertura
+
+* **152 tests** (1 skipped), cobertura **100%** en `utils/` + `kps` (umbral CI: **100%**)
+* Ajustes CI: mock de `grp`/`uinput` en collectors; deps GObject en `test-linux`
+* Cobertura al 100% — ramas antes sin cubrir:
+  * `test_const.py` — polyfill `StrEnum` (simula Python 3.10)
+  * `test_install.py` — `grp` ausente, `verify_imports` sin stderr, `verify_uinput_device` sin hint
+  * `test_runner.py` — salida del bucle con shutdown ya solicitado
+  * `test_shutdown.py` — sin `SIGUSR1`, tecla `F13`, mensaje Windows no-hotkey
+  * `test_idle.py` — alias `Monitor = DesktopIdleMonitor()` (reload como win32)
+  * `test_move.py` — `move_once()` con `uinput` mockeado
+* `pyproject.toml`: `--cov-fail-under=100` (CI y pre-commit alineados; Windows ya no usa exención)
+
+---
+
 ## 1.6.1
 
 **Tests, cobertura y validación pre-release (parche sobre 1.6.0).**
