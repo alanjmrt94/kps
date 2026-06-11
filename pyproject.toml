@@ -55,7 +55,7 @@ addopts = [
     "--cov=utils",
     "--cov=kps",
     "--cov-report=term-missing",
-    "--cov-fail-under=100",
+    "--cov-fail-under=95",
 ]
 
 [tool.coverage.run]

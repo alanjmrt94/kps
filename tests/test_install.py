@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import builtins
 import subprocess
+import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -216,11 +217,15 @@ def test_is_in_uinput_group_no_grp_module() -> None:
 
 
 def test_is_in_uinput_group() -> None:
-    with patch("grp.getgrnam", side_effect=KeyError):
+    fake_grp = MagicMock()
+    fake_grp.getgrnam.side_effect = KeyError
+    with patch.dict(sys.modules, {"grp": fake_grp}):
         assert install.is_in_uinput_group() is False
     group = MagicMock(gr_gid=42)
+    fake_grp.getgrnam.side_effect = None
+    fake_grp.getgrnam.return_value = group
     with (
-        patch("grp.getgrnam", return_value=group),
+        patch.dict(sys.modules, {"grp": fake_grp}),
         patch.object(install.os, "getgroups", return_value=[42]),
     ):
         assert install.is_in_uinput_group() is True

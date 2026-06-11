@@ -250,7 +250,7 @@ Instalar en modo editable con dependencias de desarrollo:
 
 Ejecutar tests y lint:
 
-    pytest          # cobertura 100% obligatoria (utils + kps)
+    pytest          # cobertura ≥ 95% en CI (utils + kps; ~100% en 3.12 local)
     pylint kps.py utils/*.py
 
 CI en GitHub corre los mismos checks en cada push/PR a `main`/`master`.

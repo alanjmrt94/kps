@@ -63,13 +63,13 @@ def test_default_config_path_linux(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_default_config_path_xdg(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("XDG_CONFIG_HOME", "/custom/config")
     with patch.object(config_file.sys, "platform", "linux"):
-        assert str(config_file.default_config_path()) == "/custom/config/kps/config.toml"
+        assert config_file.default_config_path().as_posix() == "/custom/config/kps/config.toml"
 
 
 def test_default_config_path_windows(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("APPDATA", "/appdata")
     with patch.object(config_file.sys, "platform", "win32"):
-        assert str(config_file.default_config_path()) == "/appdata/kps/config.toml"
+        assert config_file.default_config_path().as_posix() == "/appdata/kps/config.toml"
 
 
 def test_load_user_config_from_file(sample_config: Path) -> None:

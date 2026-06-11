@@ -3,14 +3,18 @@
 from __future__ import annotations
 
 import sys
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 
+import utils.runner as runner
 from utils.cli import KpsConfig
-from utils.const import OsType
+from utils.const import MOVE_SCRIPT_LINUX, MOVE_SCRIPT_MACOS, MOVE_SCRIPT_WINDOWS, OsType
 from utils.runner import interruptible_sleep, move_script_path, now_timestamp, run_loop, run_move
 from utils.shutdown import ShutdownController
+
+_FAKE_ROOT = Path("fake", "project", "root")
 
 
 def test_now_timestamp_format() -> None:
@@ -18,28 +22,35 @@ def test_now_timestamp_format() -> None:
 
 
 def test_move_script_path_linux() -> None:
-    with patch.object(sys, "platform", "linux"), patch("utils.runner.os.name", OsType.UNIX):
-        assert move_script_path().name == "move.py"
+    with (
+        patch.object(runner, "project_root", return_value=_FAKE_ROOT),
+        patch.object(sys, "platform", "linux"),
+        patch.object(runner.os, "name", OsType.UNIX),
+    ):
+        path = runner.move_script_path()
+        assert path.name == "move.py"
+        assert path == _FAKE_ROOT / MOVE_SCRIPT_LINUX
 
 
 def test_move_script_path_windows() -> None:
-    import pathlib
-
-    import utils.runner as runner
-
-    fake_root = pathlib.PosixPath("/fake/project")
     with (
+        patch.object(runner, "project_root", return_value=_FAKE_ROOT),
         patch.object(runner.os, "name", OsType.WINDOWS),
-        patch.object(runner, "project_root", return_value=fake_root),
     ):
         path = runner.move_script_path()
         assert path.name == "move_win.py"
-        assert str(path) == "/fake/project/utils/move_win.py"
+        assert path == _FAKE_ROOT / MOVE_SCRIPT_WINDOWS
 
 
 def test_move_script_path_macos() -> None:
-    with patch.object(sys, "platform", "darwin"), patch("utils.runner.os.name", OsType.UNIX):
-        assert move_script_path().name == "move_mac.py"
+    with (
+        patch.object(runner, "project_root", return_value=_FAKE_ROOT),
+        patch.object(sys, "platform", "darwin"),
+        patch.object(runner.os, "name", OsType.UNIX),
+    ):
+        path = runner.move_script_path()
+        assert path.name == "move_mac.py"
+        assert path == _FAKE_ROOT / MOVE_SCRIPT_MACOS
 
 
 def test_run_move_success() -> None:
