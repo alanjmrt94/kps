@@ -1,0 +1,13 @@
+# Copia a ~/.config/kps/config.toml (Linux) o %APPDATA%\kps\config.toml (Windows)
+# La CLI tiene prioridad sobre estos valores.
+
+[kps]
+away_time = 2
+poll_interval = 5
+verbose = false
+quiet = false
+dry_run = false
+# daemon = false
+# log_file = "/tmp/kps.log"
+# pid_file = "/tmp/kps.pid"
+# hotkey = "F12"

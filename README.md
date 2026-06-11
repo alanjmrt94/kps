@@ -13,6 +13,14 @@ The program works in the background and waits only for inactivity to move the mo
 
 ## Latest changes
 
+Release **v1.5.0** — UX (Fase 4):
+
+* **Config** `~/.config/kps/config.toml` (ver `config.example.toml`)
+* **`--dry-run`** — probar idle sin mover ratón
+* **`--daemon`** + **`--pid-file`** — segundo plano
+* **`--log-file`** — logs a archivo
+* Cierre graceful: Ctrl+C, SIGTERM, SIGUSR1 (daemon Linux)
+
 Release **v1.4.1** — logging más limpio (probado en MATE/Xfce X11):
 
 * Menos ruido en install (`pip -q`) y arranque (sin verify duplicado)
@@ -147,6 +155,22 @@ Use `-h` to see available options. Examples:
     python3 kps.py -t 10
     python3 kps.py -p 3 -v
     python3 kps.py -q
+    python3 kps.py -n -t 5          # dry-run: probar idle sin mover ratón
+    python3 kps.py -d --pid-file /tmp/kps.pid   # segundo plano (Linux)
+
+### Config file
+
+Copia `config.example.toml` a `~/.config/kps/config.toml` (Linux) o `%APPDATA%\kps\config.toml` (Windows).
+La CLI tiene prioridad sobre el archivo.
+
+    mkdir -p ~/.config/kps
+    cp config.example.toml ~/.config/kps/config.toml
+
+Detener daemon en Linux:
+
+    kill -USR1 $(cat /tmp/kps.pid)
+    # o
+    kill -TERM $(cat /tmp/kps.pid)
 
 ## Installation details
 

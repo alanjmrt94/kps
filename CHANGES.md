@@ -1,5 +1,40 @@
 # Release notes
 
+## 1.5.0
+
+**Experiencia de usuario (Fase 4).**
+
+### Configuración persistente
+
+* Archivo **`~/.config/kps/config.toml`** (Linux) o **`%APPDATA%\kps\config.toml`** (Windows)
+* Ejemplo en **`config.example.toml`**
+* Nuevo **`utils/config_file.py`** — carga TOML (`tomllib` 3.11+ o lector mínimo en 3.10)
+* La **CLI tiene prioridad** sobre el archivo de config
+
+### Nuevas opciones CLI
+
+| Opción | Descripción |
+|--------|-------------|
+| `-n` / `--dry-run` | Detecta inactividad sin mover el ratón |
+| `-d` / `--daemon` | Ejecuta en segundo plano |
+| `--config PATH` | Ruta alternativa al config TOML |
+| `--log-file PATH` | Escribe logs también en archivo |
+| `--pid-file PATH` | Guarda PID (útil con `--daemon`) |
+| `--hotkey KEY` | Cierre con tecla (Windows: F1–F12) |
+
+### Cierre graceful
+
+* Señales **SIGINT**, **SIGTERM** y **SIGUSR1** (Linux/macOS daemon)
+* Bucle interrumpible entre sondeos (`utils/shutdown.py`)
+* Mensaje de salida con motivo del cierre
+
+### Daemon
+
+* **`utils/daemon.py`** — re-ejecuta en segundo plano (`--foreground` interno)
+* Linux: `kill -TERM PID` o `kill -USR1 PID`
+
+---
+
 ## 1.4.1
 
 **Logging y arranque más silenciosos** — validado en Ubuntu MATE / Xfce (X11 + XScreenSaver).

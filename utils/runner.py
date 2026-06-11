@@ -18,6 +18,7 @@ from utils.const import (
     OsType,
 )
 from utils.install import project_root, venv_python
+from utils.shutdown import ShutdownController
 
 log = logging.getLogger("kps.runner")
 
@@ -54,13 +55,25 @@ def run_move() -> None:
             log.error(result.stderr.strip())
 
 
-def run_loop(config: KpsConfig) -> None:
+def interruptible_sleep(seconds: float, shutdown: ShutdownController) -> bool:
+    """Duerme en intervalos cortos; True si se solicitó cierre."""
+    deadline = time.monotonic() + seconds
+    while time.monotonic() < deadline:
+        if shutdown.requested:
+            return True
+        time.sleep(min(0.5, deadline - time.monotonic()))
+    return shutdown.requested
+
+
+def run_loop(config: KpsConfig, shutdown: ShutdownController | None = None) -> None:
     """
     Bucle principal: mueve el cursor tras ``away_time`` segundos de inactividad.
 
     Import tardío de Monitor: requiere deps del venv tras setup_environment().
     """
     from utils.idle import Monitor  # pylint: disable=import-outside-toplevel
+
+    ctrl = shutdown or ShutdownController()
 
     if not Monitor.is_available():
         log.error("Monitor de inactividad no disponible en esta plataforma.")
@@ -72,16 +85,30 @@ def run_loop(config: KpsConfig) -> None:
         config.poll_interval,
     )
 
-    while True:
+    while not ctrl.requested:
         seconds = Monitor.get_idle_sec()
         if seconds > config.away_time:
-            log.info(
-                "%s — Inactividad %s s (> %s s). Moviendo ratón...",
-                now_timestamp(),
-                seconds,
-                config.away_time,
-            )
-            run_move()
+            if config.dry_run:
+                log.info(
+                    "%s — Inactividad %s s (> %s s). Dry-run: no se mueve el ratón.",
+                    now_timestamp(),
+                    seconds,
+                    config.away_time,
+                )
+            else:
+                log.info(
+                    "%s — Inactividad %s s (> %s s). Moviendo ratón...",
+                    now_timestamp(),
+                    seconds,
+                    config.away_time,
+                )
+                run_move()
+            if interruptible_sleep(config.poll_interval, ctrl):
+                break
         else:
             log.debug("%s — Actividad detectada (%s s idle)", now_timestamp(), seconds)
-            time.sleep(config.poll_interval)
+            if interruptible_sleep(config.poll_interval, ctrl):
+                break
+
+    reason = ctrl.reason or "señal de cierre"
+    log.info("Detenido (%s).", reason)
