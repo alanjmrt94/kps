@@ -13,6 +13,12 @@ The program works in the background and waits only for inactivity to move the mo
 
 ## Latest changes
 
+Release **v1.4.1** — logging más limpio (probado en MATE/Xfce X11):
+
+* Menos ruido en install (`pip -q`) y arranque (sin verify duplicado)
+* Backend idle visible: `Monitor idle: XScreenSaver (X11)`
+* Solo movimientos del ratón en INFO; actividad y fallbacks D-Bus con `-v`
+
 Release **v1.4.0** — multiplataforma (Fase 3):
 
 * **Linux:** idle vía D-Bus (Gio) sin GTK4; Wayland por `XDG_SESSION_TYPE`

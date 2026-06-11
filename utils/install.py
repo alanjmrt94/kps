@@ -157,26 +157,37 @@ def install_pip_deps() -> None:
     _run([str(pip), "install", "-r", str(req)])
 
 
-def verify_imports() -> bool:
-    """Comprueba que los imports principales funcionan en el venv."""
+def _import_check_result() -> subprocess.CompletedProcess[str]:
+    """Ejecuta la verificación de imports en el venv."""
     py = venv_python()
-    if not py.is_file():
-        print("[kps] ERROR: no existe el intérprete del venv. Ejecuta la instalación primero.")
-        return False
-
     code = {
         "linux": _VERIFY_LINUX,
         "windows": _VERIFY_WINDOWS,
         "macos": _VERIFY_MACOS,
     }[detect_os()]
-
-    print("[kps] Verificando imports principales...")
-    result = subprocess.run(
+    return subprocess.run(
         [str(py), "-c", code.strip()],
         capture_output=True,
         text=True,
         check=False,
     )
+
+
+def _run_import_check() -> bool:
+    """Comprueba imports en el venv sin imprimir mensajes."""
+    if not venv_python().is_file():
+        return False
+    return _import_check_result().returncode == 0
+
+
+def verify_imports() -> bool:
+    """Comprueba que los imports principales funcionan en el venv."""
+    if not venv_python().is_file():
+        print("[kps] ERROR: no existe el intérprete del venv. Ejecuta la instalación primero.")
+        return False
+
+    print("[kps] Verificando imports principales...")
+    result = _import_check_result()
     if result.returncode != 0:
         print("[kps] ERROR: falló la verificación de imports.")
         if result.stderr:
@@ -189,7 +200,7 @@ def verify_imports() -> bool:
 
 def test_package() -> bool:
     """Comprueba que el entorno está listo para ejecutar kps."""
-    return verify_imports()
+    return _run_import_check()
 
 
 def is_in_uinput_group() -> bool:
@@ -222,7 +233,7 @@ def describe_uinput_issue() -> str:
     )
 
 
-def verify_uinput_device() -> bool:
+def verify_uinput_device(*, quiet: bool = False) -> bool:
     """Prueba abrir uinput y emitir un evento mínimo (sin sudo)."""
     if detect_os() != "linux":
         return True
@@ -231,7 +242,8 @@ def verify_uinput_device() -> bool:
     if not py.is_file():
         return False
 
-    print("[kps] Probando acceso uinput (sin sudo)...")
+    if not quiet:
+        print("[kps] Probando acceso uinput (sin sudo)...")
     result = subprocess.run(
         [str(py), "-c", _UINPUT_DEVICE_TEST.strip()],
         capture_output=True,
@@ -239,7 +251,8 @@ def verify_uinput_device() -> bool:
         check=False,
     )
     if result.returncode == 0:
-        print("[kps] OK: uinput operativo sin sudo.")
+        if not quiet:
+            print("[kps] OK: uinput operativo sin sudo.")
         return True
 
     print("[kps] ERROR: uinput no operativo.")
@@ -261,25 +274,29 @@ def can_access_uinput() -> bool:
     return os.access(uinput_dev, os.R_OK | os.W_OK)
 
 
-def verify_setup() -> None:
-    """Comprueba venv, imports y permisos antes de ejecutar kps."""
-    print("[kps] Verificando entorno...")
+def verify_runtime() -> None:
+    """Comprueba venv, imports (silencioso) y uinput antes de ejecutar kps."""
     if not venv_dir().is_dir():
         raise RuntimeError(
             "No hay entorno virtual (.venv). Ejecuta ./scripts/install.sh o ./run"
         )
-    if not verify_imports():
+    if not _run_import_check():
         raise RuntimeError("Los imports no están disponibles en el venv.")
     if detect_os() == "linux":
         issue = describe_uinput_issue()
         if issue:
             raise RuntimeError(issue)
-        if not verify_uinput_device():
+        if not verify_uinput_device(quiet=True):
             raise RuntimeError(
                 "No se pudo usar uinput sin sudo. "
                 "Revisa permisos de /dev/uinput y el grupo uinput."
             )
     print("[kps] Entorno listo.")
+
+
+def verify_setup() -> None:
+    """Alias de verify_runtime (compatibilidad)."""
+    verify_runtime()
 
 
 def ensure_venv_runtime() -> None:
@@ -295,10 +312,10 @@ def ensure_venv_runtime() -> None:
 
 def setup_environment() -> None:
     """Instala dependencias si faltan, verifica el entorno y activa el venv."""
-    if not test_package():
-        autoinstall()
-    verify_setup()
     ensure_venv_runtime()
+    if not venv_dir().is_dir() or not _run_import_check():
+        autoinstall()
+    verify_runtime()
 
 
 def autoinstall() -> None:

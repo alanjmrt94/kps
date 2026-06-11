@@ -2,7 +2,7 @@
 
 from enum import StrEnum, unique
 
-Version = "1.4.0"  # pylint: disable=invalid-name  # Mayor.minor.patch; usado por App_version()
+Version = "1.4.1"  # pylint: disable=invalid-name  # Mayor.minor.patch; usado por App_version()
 
 # Tiempos por defecto (segundos)
 DEFAULT_AWAY_TIME = 2

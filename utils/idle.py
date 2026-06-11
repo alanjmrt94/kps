@@ -317,7 +317,7 @@ if sys.platform not in ('win32', 'darwin'):
                 GLib.timeout_add_seconds(1, self._poll)
 
         def set_interval(self, away_interval=60, xa_interval=120):
-            log.info('Set interval: away: %s, xa: %s',
+            log.debug('Set interval: away: %s, xa: %s',
                      away_interval, xa_interval)
             self._away_interval = away_interval
             self._xa_interval = xa_interval
@@ -350,22 +350,31 @@ if sys.platform not in ('win32', 'darwin'):
         @staticmethod
         def _get_idle_monitor():
             try:
-                return DBusFreedesktopIdleMonitor()
+                monitor = DBusFreedesktopIdleMonitor()
+                log.info('Monitor idle: D-Bus (org.freedesktop.ScreenSaver)')
+                return monitor
             except GLib.Error as error:
-                log.info('Idle time via D-Bus not available: %s', error)
+                log.debug('D-Bus ScreenSaver no disponible: %s', error)
 
             try:
-                return DBusGnomeIdleMonitor()
+                monitor = DBusGnomeIdleMonitor()
+                log.info('Monitor idle: D-Bus (org.gnome.Mutter.IdleMonitor)')
+                return monitor
             except GLib.Error as error:
-                log.info('Idle time via D-Bus (GNOME) not available: %s', error)
+                log.debug('D-Bus Mutter IdleMonitor no disponible: %s', error)
 
             if app.is_wayland_session():
+                log.warning(
+                    'Sin monitor idle en Wayland (D-Bus no disponible). '
+                    'Usa sesión X11 o un compositor con D-Bus idle.')
                 return None
 
             try:
-                return XssIdleMonitor()
+                monitor = XssIdleMonitor()
+                log.info('Monitor idle: XScreenSaver (X11)')
+                return monitor
             except OSError as error:
-                log.info('Idle time via XScreenSaverInfo not available: %s', error)
+                log.debug('XScreenSaver no disponible: %s', error)
             return None
 
         def get_idle_sec(self):

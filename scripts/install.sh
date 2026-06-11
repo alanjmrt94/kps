@@ -181,19 +181,18 @@ install_python_deps() {
     py="$(venv_python)"
 
     log "Actualizando pip..."
-    "${py}" -m pip install --upgrade pip wheel setuptools
+    "${py}" -m pip install -q --disable-pip-version-check --upgrade pip wheel setuptools
 
     log "Instalando dependencias pip desde ${REQUIREMENTS} (PyGObject/pycairo vía apt)..."
-    "${py}" -m pip install -r "${REQUIREMENTS}"
+    "${py}" -m pip install -q --disable-pip-version-check -r "${REQUIREMENTS}"
 
     log "Verificando imports principales..."
     "${py}" - <<'PY'
 import gi
-gi.require_version("Gtk", "4.0")
-gi.require_version("Gdk", "4.0")
-from gi.repository import Gdk, Gio, GLib, GObject
+gi.require_version("Gio", "2.0")
+from gi.repository import Gio
 import uinput
-print("OK: gi, Gdk, Gio, uinput")
+print("OK: Gio, uinput")
 PY
 }
 
@@ -210,7 +209,7 @@ main() {
 
     log "Instalación completada."
     log "Ejecuta: ${VENV_DIR}/bin/python3 ${PROJECT_ROOT}/kps.py"
-    log "O usa: ${PROJECT_ROOT}/.run"
+    log "O usa: ${PROJECT_ROOT}/run"
     if [[ -n "${SUDO_USER:-}" ]] || [[ -n "${USER:-}" ]]; then
         log "Si acabas de unirte al grupo uinput, cierra sesión y vuelve a entrar."
     fi

@@ -83,5 +83,5 @@ def run_loop(config: KpsConfig) -> None:
             )
             run_move()
         else:
-            log.info("%s — Actividad detectada (%s s idle)", now_timestamp(), seconds)
+            log.debug("%s — Actividad detectada (%s s idle)", now_timestamp(), seconds)
             time.sleep(config.poll_interval)

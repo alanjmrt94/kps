@@ -1,5 +1,30 @@
 # Release notes
 
+## 1.4.1
+
+**Logging y arranque más silenciosos** — validado en Ubuntu MATE / Xfce (X11 + XScreenSaver).
+
+### Install (`scripts/install.sh`)
+
+* `pip install -q` — sin listado de *Requirement already satisfied*
+* Verificación post-install alineada con runtime: solo **Gio** + **uinput** (sin Gtk/Gdk)
+* Corregido mensaje del lanzador: `./run` (antes `.run`)
+
+### Arranque (`utils/install.py`)
+
+* Sin verificación duplicada de imports tras `./run` (install.sh ya verifica; kps comprueba en silencio)
+* uinput: mensajes de éxito suprimidos en arranque normal; errores siguen visibles
+
+### Idle y bucle
+
+* Fallback D-Bus (ScreenSaver, Mutter) pasa a **DEBUG** — esperado en MATE/Xfce
+* Una línea **INFO** al elegir backend: `Monitor idle: XScreenSaver (X11)` (o D-Bus en GNOME)
+* `Set interval` del monitor interno → DEBUG
+* **Actividad detectada** en el bucle → DEBUG; en INFO solo movimientos del ratón
+* Detalle completo con `-v`
+
+---
+
 ## 1.4.0
 
 **Soporte multiplataforma (Fase 3).**
