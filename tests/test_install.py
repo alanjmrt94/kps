@@ -226,7 +226,7 @@ def test_is_in_uinput_group() -> None:
     fake_grp.getgrnam.return_value = group
     with (
         patch.dict(sys.modules, {"grp": fake_grp}),
-        patch.object(install.os, "getgroups", return_value=[42]),
+        patch.object(install.os, "getgroups", return_value=[42], create=True),
     ):
         assert install.is_in_uinput_group() is True
 
