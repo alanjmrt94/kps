@@ -3,11 +3,11 @@
 import sys
 import time
 
-import pyautogui  # pylint: disable=import-error
-
 
 def jiggle_cursor() -> int:
     """Realiza un pequeño movimiento horizontal del cursor."""
+    import pyautogui  # pylint: disable=import-error,import-outside-toplevel
+
     pyautogui.FAILSAFE = False
     try:
         x, y = pyautogui.position()

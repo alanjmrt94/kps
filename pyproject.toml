@@ -1,0 +1,78 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kps"
+version = "1.6.0"
+description = "Evita inactividad moviendo el cursor cuando el usuario está ausente"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+authors = [{ name = "alanjmrt94" }]
+keywords = ["mouse", "idle", "keep-alive", "uinput"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: X11 Applications",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Desktop Environment",
+]
+# Dependencias de runtime se instalan por scripts/ según plataforma (install.sh, etc.)
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "pylint>=3.0",
+]
+
+[project.scripts]
+kps = "kps:main"
+
+[project.urls]
+Homepage = "https://github.com/alanjmrt94/kps"
+Repository = "https://github.com/alanjmrt94/kps"
+Changelog = "https://github.com/alanjmrt94/kps/blob/main/CHANGES.md"
+
+[tool.setuptools]
+py-modules = ["kps"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["utils*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = [
+    "--cov=utils",
+    "--cov-report=term-missing:skip-covered",
+    "--cov-fail-under=60",
+]
+
+[tool.coverage.run]
+branch = true
+omit = [
+    "utils/idle.py",
+    "utils/move.py",
+    "utils/move_win.py",
+    "utils/move_mac.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "if sys.platform",
+]
+
+[tool.pylint.main]
+rcfile = ".pylintrc"

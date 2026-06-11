@@ -1,5 +1,30 @@
 # Release notes
 
+## 1.6.0
+
+**Calidad y distribución (Fase 5).**
+
+### Tests
+
+* Suite **`tests/`** con pytest (51 tests, cobertura ≥ 60% en `utils/`)
+* `tests/test_cli.py`, `test_config_file.py`, `test_install.py`, `test_idle.py`, `test_move.py`, `test_runner.py`, …
+
+### Empaquetado
+
+* **`pyproject.toml`** — metadata, `pip install .`, entry point **`kps = kps:main`**
+* Dependencias dev: `pip install ".[dev]"` (pytest, pytest-cov, pylint)
+
+### CI/CD
+
+* **`.github/workflows/ci.yml`** — jobs `lint`, `test-linux` (3.10–3.12), `test-windows`
+* **`.pre-commit-config.yaml`** — pylint + pytest local
+
+### Otros
+
+* `utils/move_pyautogui.py` — import lazy de pyautogui (Linux sin dep extra)
+
+---
+
 ## 1.5.0
 
 **Experiencia de usuario (Fase 4).**

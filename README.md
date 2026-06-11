@@ -13,6 +13,12 @@ The program works in the background and waits only for inactivity to move the mo
 
 ## Latest changes
 
+Release **v1.6.0** — calidad (Fase 5):
+
+* **pytest** + cobertura ≥ 60% (`pip install ".[dev]" && pytest`)
+* **`pyproject.toml`** — `pip install .` / comando `kps`
+* **GitHub Actions** CI (lint + tests Linux/Windows)
+
 Release **v1.5.0** — UX (Fase 4):
 
 * **Config** `~/.config/kps/config.toml` (ver `config.example.toml`)
@@ -222,6 +228,21 @@ kps mueve el cursor vía `/dev/uinput`. **No se usa sudo en runtime.**
 **Regla udev** (`scripts/udev-rules/40-uinput.rules`):
 
     SUBSYSTEM=="misc", KERNEL=="uinput", MODE="0660", GROUP="uinput"
+
+## Development
+
+Instalar en modo editable con dependencias de desarrollo:
+
+    pip install -e ".[dev]"
+
+Ejecutar tests y lint:
+
+    pytest
+    pylint kps.py utils/*.py
+
+Instalar como comando global (tras `pip install .`):
+
+    kps -h
 
 ## Project layout (install/run)
 
