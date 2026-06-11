@@ -15,7 +15,7 @@ import pytest
 @patch("kps.setup_logging")
 @patch("kps.parse_args")
 def test_main_success(mock_parse, mock_log_setup, mock_setup, mock_loop) -> None:
-    config = MagicMock(daemon=False, foreground=False, pid_file=None, hotkey=None)
+    config = MagicMock(daemon=False, foreground=False, pid_file=None, hotkey=None, tray=False)
     mock_parse.return_value = config
     mock_log_setup.return_value = MagicMock()
     with pytest.raises(SystemExit) as exc:
@@ -26,7 +26,7 @@ def test_main_success(mock_parse, mock_log_setup, mock_setup, mock_loop) -> None
 @patch("kps.spawn_daemon", side_effect=SystemExit(0))
 @patch("kps.parse_args")
 def test_main_daemon_spawns(mock_parse, mock_spawn) -> None:
-    config = MagicMock(daemon=True, foreground=False, log_file=None, pid_file=None, hotkey=None)
+    config = MagicMock(daemon=True, foreground=False, log_file=None, pid_file=None, hotkey=None, tray=False)
     mock_parse.return_value = config
     with pytest.raises(SystemExit):
         kps.main()
@@ -39,7 +39,7 @@ def test_main_daemon_spawns(mock_parse, mock_spawn) -> None:
 @patch("kps.setup_logging")
 @patch("kps.parse_args")
 def test_main_runtime_error(mock_parse, mock_log_setup, _setup, _loop, _pid) -> None:
-    config = MagicMock(daemon=False, foreground=False, pid_file=MagicMock(), hotkey=None)
+    config = MagicMock(daemon=False, foreground=False, pid_file=MagicMock(), hotkey=None, tray=False)
     mock_parse.return_value = config
     mock_log_setup.return_value = MagicMock()
     with pytest.raises(SystemExit) as exc:
@@ -52,7 +52,7 @@ def test_main_runtime_error(mock_parse, mock_log_setup, _setup, _loop, _pid) -> 
 @patch("kps.setup_logging")
 @patch("kps.parse_args")
 def test_main_keyboard_interrupt(mock_parse, mock_log_setup, _setup, _loop) -> None:
-    config = MagicMock(daemon=False, foreground=False, pid_file=None, hotkey=None)
+    config = MagicMock(daemon=False, foreground=False, pid_file=None, hotkey=None, tray=False)
     mock_parse.return_value = config
     mock_log_setup.return_value = MagicMock()
     with pytest.raises(SystemExit) as exc:
@@ -62,7 +62,7 @@ def test_main_keyboard_interrupt(mock_parse, mock_log_setup, _setup, _loop) -> N
 
 def test_kps_main_module() -> None:
     kps_path = Path(kps.__file__)
-    config = MagicMock(daemon=False, foreground=False, pid_file=None, hotkey=None, log_file=None)
+    config = MagicMock(daemon=False, foreground=False, pid_file=None, hotkey=None, log_file=None, tray=False)
     with (
         patch("utils.cli.parse_args", return_value=config),
         patch("utils.cli.setup_logging", return_value=MagicMock()),

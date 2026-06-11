@@ -2,5 +2,6 @@
 # PyGObject y pycairo vienen de apt (python3-gi, python3-gi-cairo)
 # y se usan vía venv --system-site-packages
 python-uinput>=0.11.2
+pynput>=1.7.6
 setuptools>=61.0
 wheel>=0.38.0

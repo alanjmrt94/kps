@@ -53,7 +53,10 @@ def test_start_hotkey_none() -> None:
 
 
 def test_start_hotkey_non_windows() -> None:
-    with patch.object(sys, "platform", "linux"):
+    with (
+        patch.object(sys, "platform", "linux"),
+        patch("utils.hotkey._start_pynput", return_value=MagicMock()),
+    ):
         ShutdownController().start_hotkey_listener("F12")
 
 

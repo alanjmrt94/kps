@@ -13,6 +13,13 @@ The program works in the background and waits only for inactivity to move the mo
 
 ## Latest changes
 
+Release **v1.7.0** — post-plan:
+
+* **`--keyboard`** — pulso Shift opcional (off por defecto); **`--tray`** — bandeja (`kps[gui]`)
+* Hotkey **F1–F12** en Linux/macOS (pynput); **MATE Wayland** idle vía `org.mate.ScreenSaver`
+* **systemd** usuario: `./scripts/install-systemd.sh` · **Windows .exe**: `./scripts/build_windows.bat`
+* mypy gradual (CI no bloqueante)
+
 Release **v1.6.2** — CI multiplataforma y cobertura 100% (parche 1.6.1):
 
 * **152 tests**, cobertura **100%** en `utils/` + `kps`
@@ -281,7 +288,9 @@ kps/
 
 ## Development plan
 
-See `.cursor/plans/kps_desarrollo_completo.plan.md` for the full roadmap (Fase 1+).
+See `.cursor/plans/kps_desarrollo_completo.plan.md` for the full roadmap (Fases 0–5 completadas en **v1.6.2**).
+
+**v1.7.0** implementa el post-plan (tray, systemd, PyInstaller, teclado opcional, MATE D-Bus, hotkey Unix). Pendiente opcional: **PyPI**. Ver plan §8–9.
 
 ## Older releases
 

@@ -11,3 +11,5 @@ dry_run = false
 # log_file = "/tmp/kps.log"
 # pid_file = "/tmp/kps.pid"
 # hotkey = "F12"
+# keyboard_pulse = false
+# tray = false

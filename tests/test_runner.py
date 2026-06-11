@@ -162,6 +162,40 @@ def test_run_loop_shutdown_before_loop(mock_monitor: MagicMock) -> None:
 
 
 @patch("utils.idle.Monitor")
+@patch("utils.runner.pulse_shift")
+@patch("utils.runner.run_move")
+@patch("utils.runner.interruptible_sleep", return_value=True)
+def test_run_loop_keyboard_pulse(
+    _sleep: MagicMock,
+    mock_move: MagicMock,
+    mock_pulse: MagicMock,
+    mock_monitor: MagicMock,
+) -> None:
+    mock_monitor.is_available.return_value = True
+    mock_monitor.get_idle_sec.return_value = 99
+    ctrl = ShutdownController()
+    run_loop(KpsConfig(away_time=2, keyboard_pulse=True), ctrl)
+    mock_move.assert_called_once()
+    mock_pulse.assert_called_once()
+
+
+@patch("utils.idle.Monitor")
+@patch("utils.runner.run_move")
+@patch("utils.runner.interruptible_sleep", side_effect=[False, False, False, True])
+def test_run_loop_timelapse_multiple_idle_cycles(
+    _sleep: MagicMock,
+    mock_move: MagicMock,
+    mock_monitor: MagicMock,
+) -> None:
+    """Varios ciclos idle/activo sin salir del bucle (check timelapse -t)."""
+    mock_monitor.is_available.return_value = True
+    mock_monitor.get_idle_sec.side_effect = [0, 99, 0, 120]
+    ctrl = ShutdownController()
+    run_loop(KpsConfig(away_time=2, poll_interval=1), ctrl)
+    assert mock_move.call_count == 2
+
+
+@patch("utils.idle.Monitor")
 @patch("utils.runner.run_move")
 @patch("utils.runner.interruptible_sleep", side_effect=[False, True])
 def test_run_loop_move_then_shutdown(

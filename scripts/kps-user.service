@@ -1,0 +1,14 @@
+# Unidad systemd de usuario para kps (Linux).
+# Instalar: ./scripts/install-systemd.sh
+[Unit]
+Description=kps — evita inactividad del cursor
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=@KPS_EXEC_START@
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target

@@ -264,6 +264,7 @@ def test_get_idle_monitor_fallback_chain(monkeypatch: pytest.MonkeyPatch) -> Non
         patch.object(idle, "GLib", fake_glib),
         patch.object(idle, "DBusFreedesktopIdleMonitor", side_effect=FakeError("no")),
         patch.object(idle, "DBusGnomeIdleMonitor", side_effect=FakeError("no")),
+        patch.object(idle, "DBusMateIdleMonitor", side_effect=FakeError("no")),
         patch.object(idle, "XssIdleMonitor", side_effect=OSError("no xss")),
     ):
         assert idle.IdleMonitor._get_idle_monitor() is None
@@ -273,6 +274,7 @@ def test_get_idle_monitor_fallback_chain(monkeypatch: pytest.MonkeyPatch) -> Non
         patch.object(idle, "GLib", fake_glib),
         patch.object(idle, "DBusFreedesktopIdleMonitor", side_effect=FakeError("no")),
         patch.object(idle, "DBusGnomeIdleMonitor", side_effect=FakeError("no")),
+        patch.object(idle, "DBusMateIdleMonitor", side_effect=FakeError("no")),
     ):
         assert idle.IdleMonitor._get_idle_monitor() is None
 
@@ -444,6 +446,27 @@ def test_xss_idle_monitor_init_failures() -> None:
     ):
         with pytest.raises(OSError, match="libXss"):
             idle.XssIdleMonitor()
+
+
+@pytest.mark.skipif(sys.platform in ("win32", "darwin"), reason="DBusMateIdleMonitor")
+def test_mate_idle_monitor_linux() -> None:
+    import utils.idle as idle
+
+    mock_proxy = MagicMock()
+    mock_proxy.call_sync.return_value = (5000,)
+
+    class FakeError(Exception):
+        pass
+
+    fake_glib = MagicMock()
+    fake_glib.Error = FakeError
+
+    with (
+        patch.object(idle, "GLib", fake_glib),
+        patch.object(idle.Gio.DBusProxy, "new_for_bus_sync", return_value=mock_proxy),
+    ):
+        monitor = idle.DBusMateIdleMonitor()
+        assert monitor.get_idle_sec() == 5
 
 
 @pytest.mark.skipif(sys.platform in ("win32", "darwin"), reason="_get_idle_monitor éxito")

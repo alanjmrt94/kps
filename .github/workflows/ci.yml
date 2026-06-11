@@ -19,6 +19,19 @@ jobs:
       - name: Pylint
         run: python -m pylint kps.py utils/*.py
 
+  mypy:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Instalar mypy
+        run: pip install mypy
+      - name: mypy (gradual, no bloqueante)
+        run: python -m mypy
+
   test-linux:
     runs-on: ubuntu-latest
     strategy:

@@ -73,7 +73,7 @@ def _coerce_file_values(section: dict[str, Any]) -> dict[str, Any]:
     """Normaliza claves conocidas del archivo de configuración."""
     result: dict[str, Any] = {}
     int_keys = ("away_time", "poll_interval")
-    bool_keys = ("verbose", "quiet", "dry_run", "daemon")
+    bool_keys = ("verbose", "quiet", "dry_run", "daemon", "keyboard_pulse", "tray")
     str_keys = ("log_file", "pid_file", "hotkey")
 
     for key in int_keys:
@@ -125,4 +125,6 @@ def file_defaults(path: Path | None = None) -> dict[str, Any]:
         "log_file": loaded.get("log_file"),
         "pid_file": loaded.get("pid_file"),
         "hotkey": loaded.get("hotkey"),
+        "keyboard_pulse": loaded.get("keyboard_pulse", False),
+        "tray": loaded.get("tray", False),
     }

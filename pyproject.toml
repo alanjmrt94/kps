@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kps"
-version = "1.6.2"
+version = "1.7.0"
 description = "Evita inactividad moviendo el cursor cuando el usuario está ausente"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -32,6 +32,14 @@ dev = [
     "pytest>=7.4",
     "pytest-cov>=4.1",
     "pylint>=3.0",
+    "mypy>=1.8",
+]
+gui = [
+    "pystray>=0.19",
+    "Pillow>=9.0",
+]
+build = [
+    "pyinstaller>=6.0",
 ]
 
 [project.scripts]
@@ -69,3 +77,9 @@ exclude_lines = [
 
 [tool.pylint.main]
 rcfile = ".pylintrc"
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+ignore_missing_imports = true
+files = ["kps.py", "utils/cli.py", "utils/config_file.py", "utils/const.py", "utils/hotkey.py", "utils/keyboard_pulse.py"]

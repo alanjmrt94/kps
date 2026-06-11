@@ -18,6 +18,7 @@ from utils.const import (
     OsType,
 )
 from utils.install import project_root, venv_python
+from utils.keyboard_pulse import pulse_shift
 from utils.shutdown import ShutdownController
 
 log = logging.getLogger("kps.runner")
@@ -103,6 +104,8 @@ def run_loop(config: KpsConfig, shutdown: ShutdownController | None = None) -> N
                     config.away_time,
                 )
                 run_move()
+                if config.keyboard_pulse:
+                    pulse_shift()
             if interruptible_sleep(config.poll_interval, ctrl):
                 break
         else:

@@ -337,5 +337,4 @@ def autoinstall() -> None:
     print("[kps] Autoinstalación completada.")
 
 
-# Alias legacy usado por kps.py
-Autoinstall = autoinstall
+Autoinstall = autoinstall  # compatibilidad con imports antiguos

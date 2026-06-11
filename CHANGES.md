@@ -1,5 +1,31 @@
 # Release notes
 
+## 1.7.0
+
+**Post-plan: distribución, UX avanzada y cobertura ampliada.**
+
+### Nuevas funciones
+
+* **`--keyboard`** / `keyboard_pulse` en TOML — pulso de Shift además del ratón; **desactivado por defecto**
+* **`--tray`** / `tray` en TOML — icono en bandeja (`pip install "kps[gui]"`: pystray + Pillow)
+* **Hotkey F1–F12** en Linux/macOS vía `pynput` (antes solo Windows)
+* **D-Bus MATE** — `org.mate.ScreenSaver` en cadena idle (Wayland/X11 MATE)
+* **systemd user** — `scripts/kps-user.service` + `scripts/install-systemd.sh`
+* **PyInstaller** — `scripts/kps.spec` + `scripts/build_windows.bat`
+
+### Calidad
+
+* **162 tests** (1 skipped), cobertura **~96%** (umbral CI ≥ 95%)
+* Tests: hotkey, keyboard pulse, tray, MATE idle, timelapse multi-ciclo (`-t` en sesiones largas)
+* **mypy** gradual en `pyproject.toml` + job CI no bloqueante
+* Dependencia **pynput** en requirements Linux/Windows/macOS
+
+### Módulos nuevos
+
+* `utils/keyboard_pulse.py`, `utils/hotkey.py`, `utils/tray.py`
+
+---
+
 ## 1.6.2
 
 **CI multiplataforma y cobertura completa (parche sobre 1.6.1).**

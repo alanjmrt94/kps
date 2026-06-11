@@ -27,6 +27,8 @@ class KpsConfig:  # pylint: disable=too-many-instance-attributes
     log_file: Path | None = None
     pid_file: Path | None = None
     hotkey: str | None = None
+    keyboard_pulse: bool = False
+    tray: bool = False
     config_path: Path | None = None
 
 
@@ -112,7 +114,19 @@ def build_parser(defaults: dict | None = None) -> argparse.ArgumentParser:
         "--hotkey",
         default=cfg.get("hotkey"),
         metavar="KEY",
-        help="Tecla de cierre (Windows: F1–F12; Linux/macOS: Ctrl+C o SIGUSR1)",
+        help="Tecla de cierre (F1–F12; Linux/macOS requiere pynput)",
+    )
+    parser.add_argument(
+        "--keyboard",
+        action="store_true",
+        default=cfg.get("keyboard_pulse", False),
+        help="Pulso de Shift además del ratón (desactivado por defecto)",
+    )
+    parser.add_argument(
+        "--tray",
+        action="store_true",
+        default=cfg.get("tray", False),
+        help="Icono en bandeja del sistema (requiere pip install \"kps[gui]\")",
     )
     return parser
 
@@ -150,6 +164,8 @@ def parse_args(argv: list[str] | None = None) -> KpsConfig:
         log_file=args.log_file,
         pid_file=args.pid_file,
         hotkey=hotkey,
+        keyboard_pulse=args.keyboard,
+        tray=args.tray,
         config_path=config_path if config_path.is_file() else None,
     )
 
@@ -186,3 +202,7 @@ def print_banner(log: logging.Logger, config: KpsConfig) -> None:
         log.info("Modo dry-run: no se moverá el ratón.")
     if config.daemon and config.foreground:
         log.info("Proceso en segundo plano.")
+    if config.keyboard_pulse:
+        log.info("Pulso de teclado activado (además del ratón).")
+    if config.tray:
+        log.info("Modo bandeja del sistema.")

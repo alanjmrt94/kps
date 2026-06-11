@@ -179,6 +179,51 @@ if sys.platform not in ('win32', 'darwin'):
         def is_extended_away(self):
             return self._extended_away
 
+    class DBusMateIdleMonitor:
+
+        def __init__(self):
+            self.last_idle_time = 0
+            self._extended_away = False
+
+            log.debug('Connecting to D-Bus (MATE ScreenSaver)')
+            self.dbus_proxy = Gio.DBusProxy.new_for_bus_sync(
+                Gio.BusType.SESSION,
+                Gio.DBusProxyFlags.NONE,
+                None,
+                'org.mate.ScreenSaver',
+                '/org/mate/ScreenSaver',
+                'org.mate.ScreenSaver',
+                None
+            )
+            self._get_idle_sec_fail()
+            log.debug('D-Bus MATE call test successful')
+
+        def _get_idle_sec_fail(self):
+            (idle_time,) = self.dbus_proxy.call_sync(
+                'GetSessionIdleTime',
+                None,
+                Gio.DBusCallFlags.NO_AUTO_START,
+                -1,
+                None
+            )
+            return idle_time // 1000
+
+        def get_idle_sec(self):
+            try:
+                self.last_idle_time = self._get_idle_sec_fail()
+            except GLib.Error as error:
+                log.warning(
+                    'org.mate.ScreenSaver.GetSessionIdleTime() failed: %s',
+                    error)
+
+            return self.last_idle_time
+
+        def set_extended_away(self, state):
+            self._extended_away = state
+
+        def is_extended_away(self):
+            return self._extended_away
+
     class DBusGnomeIdleMonitor:
 
         def __init__(self):
@@ -362,6 +407,13 @@ if sys.platform not in ('win32', 'darwin'):
                 return monitor
             except GLib.Error as error:
                 log.debug('D-Bus Mutter IdleMonitor no disponible: %s', error)
+
+            try:
+                monitor = DBusMateIdleMonitor()
+                log.info('Monitor idle: D-Bus (org.mate.ScreenSaver)')
+                return monitor
+            except GLib.Error as error:
+                log.debug('D-Bus MATE ScreenSaver no disponible: %s', error)
 
             if app.is_wayland_session():
                 log.warning(
