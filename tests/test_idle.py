@@ -1,11 +1,13 @@
 """Tests de detección de entorno e idle (mockeado)."""
 
+
+# pylint: disable=missing-function-docstring,missing-class-docstring,protected-access,import-outside-toplevel,consider-using-from-import
 from __future__ import annotations
 
 import sys
 import time
 from types import SimpleNamespace
-from unittest.mock import MagicMock, PropertyMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -467,6 +469,31 @@ def test_mate_idle_monitor_linux() -> None:
     ):
         monitor = idle.DBusMateIdleMonitor()
         assert monitor.get_idle_sec() == 5
+        monitor.set_extended_away(True)
+        assert monitor.is_extended_away() is True
+
+
+@pytest.mark.skipif(sys.platform in ("win32", "darwin"), reason="DBusMateIdleMonitor error")
+def test_mate_idle_monitor_dbus_error() -> None:
+    import utils.idle as idle
+
+    mock_proxy = MagicMock()
+    mock_proxy.call_sync.return_value = (5000,)
+
+    class FakeError(Exception):
+        pass
+
+    fake_glib = MagicMock()
+    fake_glib.Error = FakeError
+
+    with (
+        patch.object(idle, "GLib", fake_glib),
+        patch.object(idle.Gio.DBusProxy, "new_for_bus_sync", return_value=mock_proxy),
+    ):
+        monitor = idle.DBusMateIdleMonitor()
+        monitor.last_idle_time = 3
+        with patch.object(monitor, "_get_idle_sec_fail", side_effect=FakeError("fail")):
+            assert monitor.get_idle_sec() == 3
 
 
 @pytest.mark.skipif(sys.platform in ("win32", "darwin"), reason="_get_idle_monitor éxito")
@@ -490,6 +517,15 @@ def test_get_idle_monitor_success_paths() -> None:
         patch.object(idle, "GLib", fake_glib),
         patch.object(idle, "DBusFreedesktopIdleMonitor", side_effect=FakeError("no")),
         patch.object(idle, "DBusGnomeIdleMonitor", return_value=MagicMock()),
+    ):
+        backend = idle.IdleMonitor._get_idle_monitor()
+        assert backend is not None
+
+    with (
+        patch.object(idle, "GLib", fake_glib),
+        patch.object(idle, "DBusFreedesktopIdleMonitor", side_effect=FakeError("no")),
+        patch.object(idle, "DBusGnomeIdleMonitor", side_effect=FakeError("no")),
+        patch.object(idle, "DBusMateIdleMonitor", return_value=MagicMock()),
     ):
         backend = idle.IdleMonitor._get_idle_monitor()
         assert backend is not None

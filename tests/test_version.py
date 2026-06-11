@@ -1,5 +1,7 @@
 """Tests de versión."""
 
+
+# pylint: disable=missing-function-docstring,missing-class-docstring,protected-access,import-outside-toplevel,consider-using-from-import
 from __future__ import annotations
 
 from utils.const import Version

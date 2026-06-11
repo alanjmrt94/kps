@@ -1,5 +1,7 @@
 """Tests del bucle principal (unidad, sin bucle infinito)."""
 
+
+# pylint: disable=missing-function-docstring,missing-class-docstring,protected-access,import-outside-toplevel,consider-using-from-import
 from __future__ import annotations
 
 import sys
@@ -11,7 +13,7 @@ import pytest
 import utils.runner as runner
 from utils.cli import KpsConfig
 from utils.const import MOVE_SCRIPT_LINUX, MOVE_SCRIPT_MACOS, MOVE_SCRIPT_WINDOWS, OsType
-from utils.runner import interruptible_sleep, move_script_path, now_timestamp, run_loop, run_move
+from utils.runner import interruptible_sleep, now_timestamp, run_loop, run_move
 from utils.shutdown import ShutdownController
 
 _FAKE_ROOT = Path("fake", "project", "root")

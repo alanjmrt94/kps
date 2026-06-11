@@ -1,5 +1,7 @@
 """Tests de movimiento del ratón (mockeado, sin hardware)."""
 
+
+# pylint: disable=missing-function-docstring,missing-class-docstring,protected-access,import-outside-toplevel,consider-using-from-import
 from __future__ import annotations
 
 import runpy
@@ -69,7 +71,7 @@ def test_move_linux_permission_error(capsys: pytest.CaptureFixture[str]) -> None
     assert "uinput" in capsys.readouterr().err
 
 
-def test_move_linux_os_error(capsys: pytest.CaptureFixture[str]) -> None:
+def test_move_linux_os_error() -> None:
     with patch.object(move_linux, "move_once", side_effect=OSError("broken")):
         assert move_linux.main() == 1
 

@@ -1,5 +1,7 @@
 """Tests de utilidades de instalación (sin ejecutar install.sh)."""
 
+
+# pylint: disable=missing-function-docstring,missing-class-docstring,protected-access,import-outside-toplevel,consider-using-from-import
 from __future__ import annotations
 
 import builtins
@@ -124,10 +126,10 @@ def test_ensure_venv_create_new(tmp_path: Path) -> None:
     with (
         patch.object(install, "venv_dir", return_value=venv),
         patch.object(install, "detect_os", return_value="windows"),
-        patch.object(install, "_run"),
+        patch.object(install, "_run") as mock_run,
     ):
         install.ensure_venv()
-        assert not venv.exists() or True  # _run mocked; path returned
+        mock_run.assert_called_once()
 
 
 def test_install_pip_deps(tmp_path: Path) -> None:
@@ -407,7 +409,9 @@ def test_verify_runtime_linux_uinput_verify_fail(tmp_path: Path) -> None:
 
 
 def test_import_check_result_no_python() -> None:
-    with patch.object(install, "venv_python", return_value=MagicMock(is_file=MagicMock(return_value=False))):
+    missing_python = MagicMock()
+    missing_python.is_file.return_value = False
+    with patch.object(install, "venv_python", return_value=missing_python):
         assert install._run_import_check() is False
 
 
@@ -440,7 +444,9 @@ def test_install_pip_deps_missing_pip(tmp_path: Path) -> None:
     with (
         patch.object(install, "ensure_venv", return_value=venv),
         patch.object(install, "venv_pip", return_value=venv / "bin" / "pip"),
-        patch.object(install, "requirements_file", return_value=install.requirements_file()),
+        patch.object(
+            install, "requirements_file", return_value=install.requirements_file()
+        ),
     ):
         with pytest.raises(FileNotFoundError, match="pip"):
             install.install_pip_deps()
@@ -460,9 +466,11 @@ def test_import_check_result_runs_subprocess() -> None:
 
 
 def test_verify_uinput_device_no_python() -> None:
+    missing_python = MagicMock()
+    missing_python.is_file.return_value = False
     with (
         patch.object(install, "detect_os", return_value="linux"),
-        patch.object(install, "venv_python", return_value=MagicMock(is_file=MagicMock(return_value=False))),
+        patch.object(install, "venv_python", return_value=missing_python),
     ):
         assert install.verify_uinput_device() is False
 
@@ -476,7 +484,9 @@ def test_can_access_uinput_missing_device() -> None:
         assert install.can_access_uinput() is False
 
 
-def test_ensure_venv_existing_returns_path(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def test_ensure_venv_existing_returns_path(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     venv = tmp_path / ".venv"
     venv.mkdir()
     (venv / "pyvenv.cfg").write_text("include-system-site-packages = true\n", encoding="utf-8")

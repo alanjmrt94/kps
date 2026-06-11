@@ -1,5 +1,7 @@
 """Tests de CLI y configuración de logging."""
 
+
+# pylint: disable=missing-function-docstring,missing-class-docstring,protected-access,import-outside-toplevel,consider-using-from-import
 from __future__ import annotations
 
 import argparse
@@ -112,6 +114,8 @@ def test_print_banner_all_flags() -> None:
             dry_run=True,
             daemon=True,
             foreground=True,
+            keyboard_pulse=True,
+            tray=True,
         ),
     )
-    assert log.info.call_count >= 3
+    assert log.info.call_count >= 5

@@ -1,5 +1,7 @@
 """Tests de cierre graceful."""
 
+
+# pylint: disable=missing-function-docstring,missing-class-docstring,protected-access,import-outside-toplevel,consider-using-from-import
 from __future__ import annotations
 
 import signal
@@ -52,6 +54,21 @@ def test_start_hotkey_none() -> None:
     ShutdownController().start_hotkey_listener(None)
 
 
+def test_start_hotkey_skips_log_when_listener_fails() -> None:
+    with patch("utils.shutdown.start_hotkey_listener", return_value=None):
+        with patch("utils.shutdown.log") as mock_log:
+            ShutdownController().start_hotkey_listener("F1")
+            mock_log.info.assert_not_called()
+
+
+def test_start_hotkey_logs_when_registered() -> None:
+    mock_thread = MagicMock()
+    with patch("utils.shutdown.start_hotkey_listener", return_value=mock_thread):
+        with patch("utils.shutdown.log") as mock_log:
+            ShutdownController().start_hotkey_listener("f1")
+            mock_log.info.assert_called_once_with("Hotkey de cierre: %s", "F1")
+
+
 def test_start_hotkey_non_windows() -> None:
     with (
         patch.object(sys, "platform", "linux"),
@@ -96,7 +113,7 @@ def test_windows_hotkey_loop_register_fail() -> None:
             called.append(msg)
 
         _windows_hotkey_loop(0x70, "f1", on_trigger)
-        assert called == []
+        assert not called
 
 
 def test_windows_hotkey_loop_trigger() -> None:
@@ -147,5 +164,5 @@ def test_windows_hotkey_loop_non_hotkey_message() -> None:
             called.append(reason)
 
         _windows_hotkey_loop(0x70, "f1", on_trigger)
-        assert called == []
+        assert not called
         user32.UnregisterHotKey.assert_called_once()

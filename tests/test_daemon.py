@@ -1,9 +1,10 @@
 """Tests de modo daemon."""
 
+
+# pylint: disable=missing-function-docstring,missing-class-docstring,protected-access,import-outside-toplevel,consider-using-from-import
 from __future__ import annotations
 
 import os
-import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 

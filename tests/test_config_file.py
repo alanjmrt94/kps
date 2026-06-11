@@ -1,8 +1,9 @@
 """Tests del cargador de configuración TOML."""
 
+
+# pylint: disable=missing-function-docstring,missing-class-docstring,protected-access,import-outside-toplevel,consider-using-from-import
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 from unittest.mock import patch
 
@@ -79,21 +80,21 @@ def test_load_user_config_from_file(sample_config: Path) -> None:
 
 
 def test_load_user_config_missing_returns_empty(tmp_path: Path) -> None:
-    assert config_file.load_user_config(tmp_path / "missing.toml") == {}
+    assert not config_file.load_user_config(tmp_path / "missing.toml")
 
 
 def test_load_user_config_read_error(tmp_path: Path) -> None:
     cfg = tmp_path / "bad.toml"
     cfg.write_text("[kps]\naway_time = x\n", encoding="utf-8")
     with patch.object(config_file, "_parse_toml", side_effect=ValueError("bad")):
-        assert config_file.load_user_config(cfg) == {}
+        assert not config_file.load_user_config(cfg)
 
 
 def test_load_user_config_invalid_section(tmp_path: Path) -> None:
     cfg = tmp_path / "bad.toml"
     cfg.write_text("x", encoding="utf-8")
     with patch.object(config_file, "_parse_toml", return_value={"kps": "not-a-dict"}):
-        assert config_file.load_user_config(cfg) == {}
+        assert not config_file.load_user_config(cfg)
 
 
 def test_coerce_file_values_bool_string() -> None:

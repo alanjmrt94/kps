@@ -1,6 +1,7 @@
 [MASTER]
 ignore=libs
 jobs=0
+init-hook='import glob, os, sys; _site_packages = glob.glob(os.path.join(os.getcwd(), ".venv", "lib", "python*", "site-packages")); [sys.path.insert(0, _path) for _path in _site_packages if _path not in sys.path]'
 
 [MESSAGES CONTROL]
 disable=
@@ -17,4 +18,4 @@ good-names=dx,dy,i,j,k,ex,Run,Id,Autoinstall
 
 [TYPECHECK]
 generated-members=ctypes.*
-ignored-modules=gi,gi.repository
+ignored-modules=gi,gi.repository,pytest
