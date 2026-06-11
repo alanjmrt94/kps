@@ -27,13 +27,20 @@ def test_config_filename() -> None:
     assert CONFIG_FILENAME.endswith(".toml")
 
 
-def test_display_str() -> None:
+def test_display_str_and_values() -> None:
     assert str(Display.X11) == Display.X11.value
+    assert str(Display.WAYLAND) == "GdkWaylandDisplay"
+    assert str(Display.WIN32) == Display.WIN32.value
+    assert str(Display.QUARTZ) == Display.QUARTZ.value
 
 
 def test_idle_state_values() -> None:
-    assert IdleState.AWAKE.value == "awake"
+    assert str(IdleState.AWAKE) == "awake"
+    assert str(IdleState.AWAY) == "away"
+    assert str(IdleState.XA) == "extended away"
+    assert str(IdleState.UNKNOWN) == IdleState.UNKNOWN.value
 
 
 def test_os_type_values() -> None:
     assert str(OsType.UNIX) == "posix"
+    assert str(OsType.WINDOWS) == "nt"

@@ -13,7 +13,8 @@ max-line-length=100
 min-public-methods=0
 
 [BASIC]
-good-names=dx,dy,i,j,k,ex,Run,Id
+good-names=dx,dy,i,j,k,ex,Run,Id,Autoinstall
 
 [TYPECHECK]
 generated-members=ctypes.*
+ignored-modules=gi,gi.repository

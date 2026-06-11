@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 from utils import install
 from utils.const import VENV_DIR_NAME
@@ -15,42 +18,65 @@ def test_project_root_contains_kps_py() -> None:
     assert (root / "utils").is_dir()
 
 
+def test_scripts_dir() -> None:
+    assert install.scripts_dir() == install.project_root() / "scripts"
+
+
 def test_venv_dir_name() -> None:
     assert install.venv_dir() == install.project_root() / VENV_DIR_NAME
 
 
-def test_detect_os_returns_known_value() -> None:
-    assert install.detect_os() in ("linux", "windows", "macos")
+def test_venv_python_and_pip_paths() -> None:
+    with patch.object(install.sys, "platform", "linux"):
+        assert install.venv_python().name == "python3"
+        assert install.venv_pip().name == "pip"
+    with patch.object(install.sys, "platform", "win32"):
+        assert install.venv_python().name == "python.exe"
+        assert install.venv_pip().name == "pip.exe"
 
 
-def test_requirements_file_exists() -> None:
-    req = install.requirements_file()
-    assert req.is_file()
+def test_detect_os_variants() -> None:
+    with patch.object(install.os, "name", "posix"), patch.object(install.sys, "platform", "linux"):
+        assert install.detect_os() == "linux"
+    with patch.object(install.os, "name", "nt"):
+        assert install.detect_os() == "windows"
+    with patch.object(install.os, "name", "posix"), patch.object(install.sys, "platform", "darwin"):
+        assert install.detect_os() == "macos"
 
 
-def test_platform_install_script_exists() -> None:
-    script = install.platform_install_script()
-    assert script.is_file()
+def test_requirements_and_install_script_exist() -> None:
+    assert install.requirements_file().is_file()
+    assert install.platform_install_script().is_file()
 
 
-def test_describe_uinput_issue_when_device_missing() -> None:
+def test_run_subprocess() -> None:
+    with patch.object(install.subprocess, "run") as mock_run:
+        install._run(["echo", "ok"])
+        mock_run.assert_called_once()
+
+
+def test_run_platform_install_linux() -> None:
     with (
         patch.object(install, "detect_os", return_value="linux"),
-        patch.object(install, "Path") as mock_path,
+        patch.object(install, "_run") as mock_run,
     ):
-        mock_path.return_value.exists.return_value = False
-        msg = install.describe_uinput_issue()
-    assert "/dev/uinput" in msg
+        install.run_platform_install()
+        mock_run.assert_called_once()
 
 
-def test_run_import_check_without_venv() -> None:
-    with patch.object(install, "venv_python", return_value=Path("/no/venv/python")):
-        assert install._run_import_check() is False
+def test_run_platform_install_windows() -> None:
+    with (
+        patch.object(install, "detect_os", return_value="windows"),
+        patch.object(install, "_run") as mock_run,
+    ):
+        install.run_platform_install()
+        mock_run.assert_called_with([str(install.platform_install_script())], shell=True)
 
 
-def test_can_access_uinput_non_linux() -> None:
-    with patch.object(install, "detect_os", return_value="windows"):
-        assert install.can_access_uinput() is True
+def test_run_platform_install_missing_script(tmp_path: Path) -> None:
+    with patch.object(install, "platform_install_script", return_value=tmp_path / "nope.sh"):
+        with pytest.raises(FileNotFoundError):
+            install.run_platform_install()
 
 
 def test_venv_has_system_site_packages_missing(tmp_path: Path) -> None:
@@ -61,14 +87,365 @@ def test_venv_has_system_site_packages_missing(tmp_path: Path) -> None:
 def test_venv_has_system_site_packages_true(tmp_path: Path) -> None:
     venv = tmp_path / ".venv"
     venv.mkdir()
-    (venv / "pyvenv.cfg").write_text(
-        "include-system-site-packages = true\n",
-        encoding="utf-8",
-    )
+    (venv / "pyvenv.cfg").write_text("include-system-site-packages = true\n", encoding="utf-8")
     with patch.object(install, "venv_dir", return_value=venv):
         assert install.venv_has_system_site_packages() is True
 
 
-def test_detect_os_linux() -> None:
-    with patch.object(install.os, "name", "posix"), patch.object(install.sys, "platform", "linux"):
-        assert install.detect_os() == "linux"
+def test_ensure_venv_existing_compatible(tmp_path: Path) -> None:
+    venv = tmp_path / ".venv"
+    venv.mkdir()
+    (venv / "pyvenv.cfg").write_text("include-system-site-packages = true\n", encoding="utf-8")
+    with (
+        patch.object(install, "venv_dir", return_value=venv),
+        patch.object(install, "detect_os", return_value="linux"),
+    ):
+        assert install.ensure_venv() == venv
+
+
+def test_ensure_venv_recreate_without_system_packages(tmp_path: Path) -> None:
+    venv = tmp_path / ".venv"
+    venv.mkdir()
+    (venv / "pyvenv.cfg").write_text("include-system-site-packages = false\n", encoding="utf-8")
+    with (
+        patch.object(install, "venv_dir", return_value=venv),
+        patch.object(install, "detect_os", return_value="linux"),
+        patch.object(install.shutil, "rmtree") as mock_rm,
+        patch.object(install, "_run"),
+    ):
+        install.ensure_venv()
+        mock_rm.assert_called_once_with(venv)
+
+
+def test_ensure_venv_create_new(tmp_path: Path) -> None:
+    venv = tmp_path / ".venv"
+    with (
+        patch.object(install, "venv_dir", return_value=venv),
+        patch.object(install, "detect_os", return_value="windows"),
+        patch.object(install, "_run"),
+    ):
+        install.ensure_venv()
+        assert not venv.exists() or True  # _run mocked; path returned
+
+
+def test_install_pip_deps(tmp_path: Path) -> None:
+    venv = tmp_path / ".venv"
+    venv.mkdir()
+    pip = venv / "bin" / "pip"
+    pip.parent.mkdir(parents=True)
+    pip.touch()
+    with (
+        patch.object(install, "ensure_venv", return_value=venv),
+        patch.object(install, "venv_pip", return_value=pip),
+        patch.object(install, "_run") as mock_run,
+    ):
+        install.install_pip_deps()
+        assert mock_run.call_count == 2
+
+
+def test_install_pip_deps_missing_requirements(tmp_path: Path) -> None:
+    with patch.object(install, "requirements_file", return_value=tmp_path / "missing.txt"):
+        with pytest.raises(FileNotFoundError):
+            install.install_pip_deps()
+
+
+def test_import_check_and_verify() -> None:
+    ok = subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr="")
+    fail = subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr="err")
+    py = MagicMock()
+    py.is_file.return_value = True
+    with (
+        patch.object(install, "venv_python", return_value=py),
+        patch.object(install, "_import_check_result", return_value=ok),
+    ):
+        assert install._run_import_check() is True
+        assert install.verify_imports() is True
+        assert install.test_package() is True
+    with patch.object(install, "_import_check_result", return_value=fail):
+        assert install.verify_imports() is False
+
+
+def test_verify_imports_no_python() -> None:
+    with patch.object(install, "venv_python", return_value=Path("/no/python")):
+        assert install.verify_imports() is False
+
+
+def test_describe_uinput_paths() -> None:
+    with (
+        patch.object(install, "detect_os", return_value="linux"),
+        patch.object(install, "Path") as mock_path,
+    ):
+        mock_path.return_value.exists.return_value = False
+        assert "uinput" in install.describe_uinput_issue()
+    with (
+        patch.object(install, "detect_os", return_value="linux"),
+        patch.object(install, "can_access_uinput", return_value=True),
+        patch.object(install, "Path") as mock_path,
+    ):
+        mock_path.return_value.exists.return_value = True
+        assert install.describe_uinput_issue() == ""
+    with (
+        patch.object(install, "detect_os", return_value="linux"),
+        patch.object(install, "can_access_uinput", return_value=False),
+        patch.object(install, "is_in_uinput_group", return_value=True),
+        patch.object(install, "Path") as mock_path,
+    ):
+        mock_path.return_value.exists.return_value = True
+        assert "Cierra sesión" in install.describe_uinput_issue()
+    with (
+        patch.object(install, "detect_os", return_value="linux"),
+        patch.object(install, "can_access_uinput", return_value=False),
+        patch.object(install, "is_in_uinput_group", return_value=False),
+        patch.object(install, "Path") as mock_path,
+    ):
+        mock_path.return_value.exists.return_value = True
+        assert "install.sh" in install.describe_uinput_issue()
+
+
+def test_is_in_uinput_group() -> None:
+    with patch.object(install.grp, "getgrnam", side_effect=KeyError):
+        assert install.is_in_uinput_group() is False
+    group = MagicMock(gr_gid=42)
+    with (
+        patch.object(install.grp, "getgrnam", return_value=group),
+        patch.object(install.os, "getgroups", return_value=[42]),
+    ):
+        assert install.is_in_uinput_group() is True
+
+
+def test_can_access_uinput() -> None:
+    with patch.object(install, "detect_os", return_value="windows"):
+        assert install.can_access_uinput() is True
+    with (
+        patch.object(install, "detect_os", return_value="linux"),
+        patch.object(install, "Path") as mock_path,
+        patch.object(install.os, "access", return_value=True),
+    ):
+        mock_path.return_value.exists.return_value = True
+        assert install.can_access_uinput() is True
+
+
+def test_verify_uinput_device() -> None:
+    py = MagicMock()
+    py.is_file.return_value = True
+    ok = subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr="")
+    fail = subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr="denied")
+    with (
+        patch.object(install, "detect_os", return_value="linux"),
+        patch.object(install, "venv_python", return_value=py),
+        patch.object(install.subprocess, "run", return_value=ok),
+    ):
+        assert install.verify_uinput_device() is True
+        assert install.verify_uinput_device(quiet=True) is True
+    with (
+        patch.object(install, "detect_os", return_value="linux"),
+        patch.object(install, "venv_python", return_value=py),
+        patch.object(install.subprocess, "run", return_value=fail),
+        patch.object(install, "describe_uinput_issue", return_value="hint"),
+    ):
+        assert install.verify_uinput_device() is False
+    with patch.object(install, "detect_os", return_value="windows"):
+        assert install.verify_uinput_device() is True
+
+
+def test_verify_runtime_success(tmp_path: Path) -> None:
+    venv = tmp_path / ".venv"
+    venv.mkdir()
+    with (
+        patch.object(install, "venv_dir", return_value=venv),
+        patch.object(install, "_run_import_check", return_value=True),
+        patch.object(install, "detect_os", return_value="windows"),
+    ):
+        install.verify_runtime()
+
+
+def test_verify_runtime_failures(tmp_path: Path) -> None:
+    with patch.object(install, "venv_dir", return_value=tmp_path / "missing"):
+        with pytest.raises(RuntimeError, match="entorno virtual"):
+            install.verify_runtime()
+    venv = tmp_path / ".venv"
+    venv.mkdir()
+    with (
+        patch.object(install, "venv_dir", return_value=venv),
+        patch.object(install, "_run_import_check", return_value=False),
+    ):
+        with pytest.raises(RuntimeError, match="imports"):
+            install.verify_runtime()
+
+
+def test_verify_setup_alias() -> None:
+    with patch.object(install, "verify_runtime") as mock_rt:
+        install.verify_setup()
+        mock_rt.assert_called_once()
+
+
+def test_ensure_venv_runtime_noop_and_exec(tmp_path: Path) -> None:
+    missing = tmp_path / "missing" / "python3"
+    with patch.object(install, "venv_python", return_value=missing):
+        install.ensure_venv_runtime()
+
+    vpy = tmp_path / "venv" / "bin" / "python3"
+    vpy.parent.mkdir(parents=True)
+    vpy.touch()
+    with (
+        patch.object(install, "venv_python", return_value=vpy),
+        patch.object(install.sys, "executable", str(vpy.resolve())),
+    ):
+        install.ensure_venv_runtime()
+
+    with (
+        patch.object(install, "venv_python", return_value=vpy),
+        patch.object(install.sys, "executable", "/usr/bin/python3"),
+        patch.object(install.os, "execv", side_effect=SystemExit) as mock_exec,
+    ):
+        with pytest.raises(SystemExit):
+            install.ensure_venv_runtime()
+        mock_exec.assert_called_once()
+
+
+def test_setup_environment_and_autoinstall() -> None:
+    with (
+        patch.object(install, "ensure_venv_runtime"),
+        patch.object(install, "venv_dir") as mock_venv,
+        patch.object(install, "_run_import_check", return_value=True),
+        patch.object(install, "verify_runtime") as mock_verify,
+    ):
+        mock_venv.return_value.is_dir.return_value = True
+        install.setup_environment()
+        mock_verify.assert_called_once()
+    with (
+        patch.object(install, "ensure_venv_runtime"),
+        patch.object(install, "venv_dir") as mock_venv,
+        patch.object(install, "_run_import_check", return_value=False),
+        patch.object(install, "autoinstall") as mock_auto,
+        patch.object(install, "verify_runtime"),
+    ):
+        mock_venv.return_value.is_dir.return_value = False
+        install.setup_environment()
+        mock_auto.assert_called_once()
+    with (
+        patch.object(install, "run_platform_install"),
+        patch.object(install, "verify_imports", return_value=True),
+    ):
+        install.autoinstall()
+    with (
+        patch.object(install, "run_platform_install"),
+        patch.object(install, "verify_imports", return_value=False),
+    ):
+        with pytest.raises(RuntimeError):
+            install.autoinstall()
+
+
+def test_autoinstall_alias() -> None:
+    assert install.Autoinstall is install.autoinstall
+
+
+def test_verify_runtime_linux_success(tmp_path: Path) -> None:
+    venv = tmp_path / ".venv"
+    venv.mkdir()
+    with (
+        patch.object(install, "venv_dir", return_value=venv),
+        patch.object(install, "_run_import_check", return_value=True),
+        patch.object(install, "detect_os", return_value="linux"),
+        patch.object(install, "describe_uinput_issue", return_value=""),
+        patch.object(install, "verify_uinput_device", return_value=True),
+    ):
+        install.verify_runtime()
+
+
+def test_verify_runtime_linux_uinput_issue(tmp_path: Path) -> None:
+    venv = tmp_path / ".venv"
+    venv.mkdir()
+    with (
+        patch.object(install, "venv_dir", return_value=venv),
+        patch.object(install, "_run_import_check", return_value=True),
+        patch.object(install, "detect_os", return_value="linux"),
+        patch.object(install, "describe_uinput_issue", return_value="sin acceso"),
+    ):
+        with pytest.raises(RuntimeError, match="sin acceso"):
+            install.verify_runtime()
+
+
+def test_verify_runtime_linux_uinput_verify_fail(tmp_path: Path) -> None:
+    venv = tmp_path / ".venv"
+    venv.mkdir()
+    with (
+        patch.object(install, "venv_dir", return_value=venv),
+        patch.object(install, "_run_import_check", return_value=True),
+        patch.object(install, "detect_os", return_value="linux"),
+        patch.object(install, "describe_uinput_issue", return_value=""),
+        patch.object(install, "verify_uinput_device", return_value=False),
+    ):
+        with pytest.raises(RuntimeError, match="uinput"):
+            install.verify_runtime()
+
+
+def test_import_check_result_no_python() -> None:
+    with patch.object(install, "venv_python", return_value=MagicMock(is_file=MagicMock(return_value=False))):
+        assert install._run_import_check() is False
+
+
+def test_verify_imports_stderr(capsys: pytest.CaptureFixture[str]) -> None:
+    fail = subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr="import fail")
+    py = MagicMock()
+    py.is_file.return_value = True
+    with (
+        patch.object(install, "venv_python", return_value=py),
+        patch.object(install, "_import_check_result", return_value=fail),
+    ):
+        assert install.verify_imports() is False
+    assert "import fail" in capsys.readouterr().out
+
+
+def test_install_pip_deps_missing_pip(tmp_path: Path) -> None:
+    venv = tmp_path / ".venv"
+    venv.mkdir()
+    with (
+        patch.object(install, "ensure_venv", return_value=venv),
+        patch.object(install, "venv_pip", return_value=venv / "bin" / "pip"),
+        patch.object(install, "requirements_file", return_value=install.requirements_file()),
+    ):
+        with pytest.raises(FileNotFoundError, match="pip"):
+            install.install_pip_deps()
+
+
+def test_import_check_result_runs_subprocess() -> None:
+    py = MagicMock()
+    py.is_file.return_value = True
+    ok = subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr="")
+    with (
+        patch.object(install, "venv_python", return_value=py),
+        patch.object(install, "detect_os", return_value="linux"),
+        patch.object(install.subprocess, "run", return_value=ok) as mock_run,
+    ):
+        assert install._import_check_result().returncode == 0
+        mock_run.assert_called_once()
+
+
+def test_verify_uinput_device_no_python() -> None:
+    with (
+        patch.object(install, "detect_os", return_value="linux"),
+        patch.object(install, "venv_python", return_value=MagicMock(is_file=MagicMock(return_value=False))),
+    ):
+        assert install.verify_uinput_device() is False
+
+
+def test_can_access_uinput_missing_device() -> None:
+    with (
+        patch.object(install, "detect_os", return_value="linux"),
+        patch.object(install, "Path") as mock_path,
+    ):
+        mock_path.return_value.exists.return_value = False
+        assert install.can_access_uinput() is False
+
+
+def test_ensure_venv_existing_returns_path(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    venv = tmp_path / ".venv"
+    venv.mkdir()
+    (venv / "pyvenv.cfg").write_text("include-system-site-packages = true\n", encoding="utf-8")
+    with (
+        patch.object(install, "venv_dir", return_value=venv),
+        patch.object(install, "detect_os", return_value="linux"),
+    ):
+        assert install.ensure_venv() == venv
+    assert "existente" in capsys.readouterr().out

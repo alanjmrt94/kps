@@ -13,10 +13,17 @@ The program works in the background and waits only for inactivity to move the mo
 
 ## Latest changes
 
+Release **v1.6.1** — tests y validación (parche 1.6.0):
+
+* **144 tests**, cobertura **~99%** (umbral CI ≥ 95%)
+* **CI remoto** verde (GitHub Actions: lint + Linux 3.10–3.12 + Windows)
+* **Ubuntu limpio (VM)**: `./run` de cero validado
+* Pylint en CI sin falsos positivos por `gi` (dep de apt)
+
 Release **v1.6.0** — calidad (Fase 5):
 
-* **pytest** + cobertura ≥ 60% (`pip install ".[dev]" && pytest`)
-* **`pyproject.toml`** — `pip install .` / comando `kps`
+* **pytest** + `pyproject.toml` (`pip install ".[dev]" && pytest`)
+* Comando global **`kps`** tras `pip install .`
 * **GitHub Actions** CI (lint + tests Linux/Windows)
 
 Release **v1.5.0** — UX (Fase 4):
@@ -237,8 +244,10 @@ Instalar en modo editable con dependencias de desarrollo:
 
 Ejecutar tests y lint:
 
-    pytest
+    pytest          # cobertura ≥ 95% (utils + kps)
     pylint kps.py utils/*.py
+
+CI en GitHub corre los mismos checks en cada push/PR a `main`/`master`.
 
 Instalar como comando global (tras `pip install .`):
 

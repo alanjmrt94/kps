@@ -1,5 +1,27 @@
 # Release notes
 
+## 1.6.1
+
+**Tests, cobertura y validación pre-release (parche sobre 1.6.0).**
+
+### Tests y cobertura
+
+* Suite ampliada: **144 tests** (antes 51), **1 skipped**
+* Cobertura **~99%** en `utils/` + `kps` (umbral CI: **≥ 95%**)
+* Nuevos/renovados: `tests/test_kps.py`, cobertura de `install`, `idle`, `shutdown`, `daemon`, entrypoints `move_*.py`
+* `pyproject.toml`: `--cov=kps`, sin omitir módulos de plataforma; `fail-under=95`
+
+### CI / lint
+
+* **GitHub Actions** verificado en remoto (push/PR): `lint`, `test-linux` 3.10–3.12, `test-windows`
+* **`.pylintrc`**: `ignored-modules=gi,gi.repository` (PyGObject es dep de sistema, no del venv de CI); alias `Autoinstall` en `good-names`
+
+### Validación instalación
+
+* **Ubuntu limpio (VM)**: `./run` desde cero sin hacks — `install.sh`, venv, imports y arranque OK
+
+---
+
 ## 1.6.0
 
 **Calidad y distribución (Fase 5).**
@@ -269,7 +291,7 @@ CLI → setup_environment() → move_mouse()
 
 * Resueltas en **1.4.0**: Windows (`move_win.py`) y macOS (`move_mac.py` + Quartz idle)
 * `utils/install.py` legacy en 1.1.6 reemplazado; usar scripts + `setup_environment()`
-* Prueba en Ubuntu limpio (VM) recomendada antes de publicar
+* Prueba en Ubuntu limpio (VM) — validada en **v1.6.1**
 
 ---
 
