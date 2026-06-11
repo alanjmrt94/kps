@@ -56,7 +56,7 @@ def _windows_vk_loop(vk: int, label: str, on_trigger: Callable[[str], None]) -> 
     import ctypes  # pylint: disable=import-outside-toplevel
     import ctypes.wintypes  # pylint: disable=import-outside-toplevel
 
-    user32 = ctypes.windll.user32
+    user32 = ctypes.windll.user32  # type: ignore[attr-defined]
     if not user32.RegisterHotKey(None, 1, 0, vk):
         log.warning("No se pudo registrar hotkey %s", label)
         return

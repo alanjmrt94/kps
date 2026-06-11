@@ -6,7 +6,7 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from utils.const import (
     CONFIG_FILENAME,
@@ -34,7 +34,7 @@ def _parse_toml(text: str) -> dict[str, Any]:
         import tomllib  # pylint: disable=import-outside-toplevel
     except ImportError:
         return _parse_kps_section_minimal(text)
-    return tomllib.loads(text)
+    return cast(dict[str, Any], tomllib.loads(text))
 
 
 def _parse_kps_section_minimal(text: str) -> dict[str, Any]:

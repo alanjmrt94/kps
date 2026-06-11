@@ -28,7 +28,7 @@ def is_display(display: Display) -> bool:
         if display_class is None:
             log.warning("No se pudo determinar el gestor de ventanas")
             return False
-        return display_class == display.value
+        return bool(display_class == display.value)
     except (ImportError, ValueError) as error:
         log.debug("Gdk no disponible para detectar X11: %s", error)
         return not is_wayland_session()
@@ -44,4 +44,4 @@ def _gdk_display_class_name() -> str | None:
     default = Gdk.Display.get_default()
     if default is None:
         return None
-    return default.__class__.__name__
+    return str(default.__class__.__name__)

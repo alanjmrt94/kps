@@ -26,6 +26,7 @@ import ctypes.util
 import logging
 import sys
 import time
+from typing import TYPE_CHECKING, Protocol, cast
 
 from utils.const import IdleState
 
@@ -99,6 +100,16 @@ class MacIdleMonitor:
 
     def is_extended_away(self):
         return False
+
+
+if TYPE_CHECKING:
+
+    class _MonitorApi(Protocol):
+        """API mínima compartida por IdleMonitor y DesktopIdleMonitor."""
+
+        def is_available(self) -> bool: ...
+
+        def get_idle_sec(self) -> float | int: ...
 
 
 class DesktopIdleMonitor:
@@ -462,6 +473,6 @@ if sys.platform not in ('win32', 'darwin'):
             log.info('State changed: %s', state)
             self.emit('state-changed')
 
-    Monitor = IdleMonitor()
+    Monitor = cast("_MonitorApi", IdleMonitor())
 else:
-    Monitor = DesktopIdleMonitor()
+    Monitor = cast("_MonitorApi", DesktopIdleMonitor())

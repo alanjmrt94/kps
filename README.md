@@ -13,6 +13,11 @@ The program works in the background and waits only for inactivity to move the mo
 
 ## Latest changes
 
+Release **v1.7.2** — parche CI y mypy (post v1.7.1):
+
+* **mypy** verde en CI (tipos en `app`, `config_file`, `hotkey`, `idle`)
+* Actions **`checkout@v6`** y **`setup-python@v6`** (Node.js 24)
+
 Release **v1.7.1** — parche CI y docs (post v1.7.0):
 
 * Pylint en CI sobre **`tests/`** además de `kps.py` y `utils/`
@@ -295,7 +300,7 @@ kps/
 
 See `.cursor/plans/kps_desarrollo_completo.plan.md` for the full roadmap.
 
-**v1.7.x** — post-plan completado (tray, systemd, PyInstaller, teclado opcional, MATE D-Bus, hotkey Unix, mypy gradual). **v1.7.1** añade pylint en CI sobre tests y documentación al día. Pendiente opcional: **PyPI** y pruebas manuales Wayland/Windows/macOS (§8.1 del plan).
+**v1.7.x** — post-plan completado (tray, systemd, PyInstaller, teclado opcional, MATE D-Bus, hotkey Unix, mypy gradual). **v1.7.2** corrige mypy en CI y actualiza Actions a Node 24. Pendiente opcional: **PyPI** y pruebas manuales Wayland/Windows/macOS (§8.1 del plan).
 
 ## Older releases
 

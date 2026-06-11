@@ -10,7 +10,7 @@ else:
     class StrEnum(str, Enum):  # type: ignore[misc]
         """Compatibilidad StrEnum para Python 3.10."""
 
-Version = "1.7.1"  # pylint: disable=invalid-name  # Mayor.minor.patch; usado por App_version()
+Version = "1.7.2"  # pylint: disable=invalid-name  # Mayor.minor.patch; usado por App_version()
 
 # Tiempos por defecto (segundos)
 DEFAULT_AWAY_TIME = 2

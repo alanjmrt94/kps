@@ -1,5 +1,23 @@
 # Release notes
 
+## 1.7.2
+
+**Parche CI y mypy (post v1.7.1).**
+
+### CI
+
+* **GitHub Actions** actualizadas a `actions/checkout@v6` y `actions/setup-python@v6` (runtime **Node.js 24**; sin aviso de deprecación de Node 20)
+
+### mypy
+
+* Corrige los 5 errores del job `mypy` en CI:
+  * `utils/app.py` — retorno `bool` explícito y `str` en nombre de clase Gdk
+  * `utils/config_file.py` — `cast` tras `tomllib.loads`
+  * `utils/hotkey.py` — `ctypes.windll` en Windows (`type: ignore[attr-defined]`)
+  * `utils/idle.py` — protocolo `_MonitorApi` para `Monitor` multiplataforma
+
+---
+
 ## 1.7.1
 
 **Parche de documentación y CI (post v1.7.0).**
