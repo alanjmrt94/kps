@@ -17,7 +17,7 @@ jobs:
       - name: Instalar dependencias dev
         run: pip install ".[dev]"
       - name: Pylint
-        run: python -m pylint kps.py utils/*.py
+        run: python -m pylint kps.py utils/*.py tests/*.py
 
   mypy:
     runs-on: ubuntu-latest

@@ -13,6 +13,11 @@ The program works in the background and waits only for inactivity to move the mo
 
 ## Latest changes
 
+Release **v1.7.1** — parche CI y docs (post v1.7.0):
+
+* Pylint en CI sobre **`tests/`** además de `kps.py` y `utils/`
+* **178 tests**, cobertura **100%**; README y plan sincronizados post-v1.7
+
 Release **v1.7.0** — post-plan:
 
 * **`--keyboard`** — pulso Shift opcional (off por defecto); **`--tray`** — bandeja (`kps[gui]`)
@@ -257,8 +262,8 @@ Instalar en modo editable con dependencias de desarrollo:
 
 Ejecutar tests y lint:
 
-    pytest          # cobertura ≥ 95% en CI (utils + kps; ~100% en 3.12 local)
-    pylint kps.py utils/*.py
+    pytest          # cobertura ≥ 95% en CI (utils + kps; 100% en 3.12 local)
+    pylint kps.py utils/*.py tests/*.py
 
 CI en GitHub corre los mismos checks en cada push/PR a `main`/`master`.
 
@@ -288,9 +293,9 @@ kps/
 
 ## Development plan
 
-See `.cursor/plans/kps_desarrollo_completo.plan.md` for the full roadmap (Fases 0–5 completadas en **v1.6.2**).
+See `.cursor/plans/kps_desarrollo_completo.plan.md` for the full roadmap.
 
-**v1.7.0** implementa el post-plan (tray, systemd, PyInstaller, teclado opcional, MATE D-Bus, hotkey Unix). Pendiente opcional: **PyPI**. Ver plan §8–9.
+**v1.7.x** — post-plan completado (tray, systemd, PyInstaller, teclado opcional, MATE D-Bus, hotkey Unix, mypy gradual). **v1.7.1** añade pylint en CI sobre tests y documentación al día. Pendiente opcional: **PyPI** y pruebas manuales Wayland/Windows/macOS (§8.1 del plan).
 
 ## Older releases
 

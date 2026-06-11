@@ -3,7 +3,7 @@ repos:
     hooks:
       - id: pylint
         name: pylint
-        entry: python -m pylint kps.py utils
+        entry: python -m pylint kps.py utils tests
         language: system
         pass_filenames: false
       - id: pytest

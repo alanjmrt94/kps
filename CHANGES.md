@@ -1,5 +1,22 @@
 # Release notes
 
+## 1.7.1
+
+**Parche de documentación y CI (post v1.7.0).**
+
+### CI y calidad
+
+* **Pylint en CI** ampliado a `tests/*.py` (antes solo `kps.py` y `utils/`)
+* **178 tests** (1 skipped), cobertura **100%** en `utils/` + `kps` + `tests/` cubiertos por suite
+* `.pylintrc`: `init-hook` para resolver `pytest` sin activar venv manualmente
+* Pre-commit alineado: pylint sobre `kps`, `utils` y `tests`
+
+### Documentación
+
+* README y plan actualizados al estado real post-v1.7 (métricas, pendientes, §8)
+
+---
+
 ## 1.7.0
 
 **Post-plan: distribución, UX avanzada y cobertura ampliada.**
@@ -15,7 +32,7 @@
 
 ### Calidad
 
-* **162 tests** (1 skipped), cobertura **~96%** (umbral CI ≥ 95%)
+* **178 tests** (1 skipped), cobertura **100%** (umbral CI ≥ 95%)
 * Tests: hotkey, keyboard pulse, tray, MATE idle, timelapse multi-ciclo (`-t` en sesiones largas)
 * **mypy** gradual en `pyproject.toml` + job CI no bloqueante
 * Dependencia **pynput** en requirements Linux/Windows/macOS
