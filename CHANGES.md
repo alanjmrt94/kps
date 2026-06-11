@@ -15,6 +15,7 @@
   * `utils/config_file.py` — `cast` tras `tomllib.loads`
   * `utils/hotkey.py` — `ctypes.windll` en Windows (`type: ignore[attr-defined]`)
   * `utils/idle.py` — protocolo `_MonitorApi` para `Monitor` multiplataforma
+* Job **mypy** pasa a ser **bloqueante** (eliminado `continue-on-error`)
 
 ---
 

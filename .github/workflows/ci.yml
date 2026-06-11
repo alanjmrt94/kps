@@ -21,7 +21,6 @@ jobs:
 
   mypy:
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
@@ -29,7 +28,7 @@ jobs:
           python-version: "3.12"
       - name: Instalar mypy
         run: pip install mypy
-      - name: mypy (gradual, no bloqueante)
+      - name: mypy
         run: python -m mypy
 
   test-linux:

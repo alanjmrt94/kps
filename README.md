@@ -15,7 +15,7 @@ The program works in the background and waits only for inactivity to move the mo
 
 Release **v1.7.2** — parche CI y mypy (post v1.7.1):
 
-* **mypy** verde en CI (tipos en `app`, `config_file`, `hotkey`, `idle`)
+* **mypy** verde y **bloqueante** en CI (tipos en `app`, `config_file`, `hotkey`, `idle`)
 * Actions **`checkout@v6`** y **`setup-python@v6`** (Node.js 24)
 
 Release **v1.7.1** — parche CI y docs (post v1.7.0):
