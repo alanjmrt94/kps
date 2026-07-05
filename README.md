@@ -13,10 +13,14 @@ The program works in the background and waits only for inactivity to move the mo
 
 ## Latest changes
 
-Release **v2.0.4** — Windows y PyPI:
+Release **v2.0.5** — PyPI `kps-idle`:
+
+* Paquete PyPI renombrado a **`kps-idle`** (`pip install kps-idle`; comando `kps`)
+* **`release.sh`**: artefactos y URL PyPI según `pyproject.toml`; fallo explícito si twine error
+
+Release **v2.0.4** — Windows y CI:
 
 * **CI `test-windows`** estable (`linux_uinput_modules`, rutas bundled con `Path.resolve()`)
-* **PyPI**: `pip install kps`
 * **Windows 10/11** validado manualmente (`kps.exe`, idle, movimiento)
 
 Release **v2.0.2** — calidad de código:
@@ -227,7 +231,7 @@ Tras `install.bat` / `install-macos.sh` / `install.sh`, ejecuta el script de bui
 
 * `pyautogui`, `pynput`, `pyobjc-framework-Quartz`
 
-All Python packages are installed from **PyPI** into `.venv` at the project root (`pip install kps` también disponible como paquete publicado).
+All Python packages are installed from **PyPI** into `.venv` at the project root (`pip install kps-idle` también disponible como paquete publicado; el comando sigue siendo `kps`).
 
 ### Linux: permisos uinput (sin sudo)
 
@@ -303,7 +307,7 @@ kps/
 
 See `.cursor/plans/kps_pending.plan.md` for the current roadmap.
 
-**v2.0.4** — PyPI publicado, Windows validado, CI test-windows OK. **v2.0.2** — docstrings y lint. **v2.0.1** — AppImage. Pendiente: prueba manual macOS.
+**v2.0.5** — PyPI como `kps-idle`. **v2.0.4** — Windows validado, CI test-windows OK. **v2.0.2** — docstrings y lint. **v2.0.1** — AppImage. Pendiente: prueba manual macOS.
 
 ## Older releases
 

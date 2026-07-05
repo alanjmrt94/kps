@@ -3,8 +3,8 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "kps"
-version = "2.0.4"
+name = "kps-idle"
+version = "2.0.5"
 description = "Evita inactividad moviendo el cursor cuando el usuario está ausente"
 readme = "README.md"
 license = { file = "LICENSE" }

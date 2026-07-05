@@ -1,8 +1,24 @@
 # Release notes
 
+## 2.0.5
+
+**PyPI: paquete `kps-idle` (conflicto de nombre resuelto).**
+
+### Publicación
+
+* **PyPI**: [kps-idle](https://pypi.org/project/kps-idle/) — `pip install kps-idle` (comando CLI: `kps`)
+* El nombre `kps` ya existía en PyPI (otro proyecto); la subida devolvía **403 Forbidden**
+* **`release.sh`**: globs de artefactos derivados de `pyproject.toml`, URL PyPI dinámica y error explícito si falla twine
+
+### Documentación
+
+* README, `scripts/README.md` y plan actualizados con `pip install kps-idle`
+
+---
+
 ## 2.0.4
 
-**Windows CI estable, PyPI y validación Windows.**
+**Windows CI estable y validación Windows.**
 
 ### CI
 
@@ -12,7 +28,6 @@
 
 ### Publicación
 
-* **PyPI**: [kps en PyPI](https://pypi.org/project/kps/) — `pip install kps`
 * Scripts **`release.sh`** y **`lint.sh`** documentados en `scripts/README.md`
 
 ### Validación manual

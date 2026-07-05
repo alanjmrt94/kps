@@ -221,7 +221,7 @@ export PYPI_API_TOKEN=pypi-...
 **¿Dónde publicar además?**
 
 * **GitHub Releases** — canal principal para el AppImage y futuros `.exe` / `.app`.
-* **PyPI** — `pip install kps` ([pypi.org/project/kps](https://pypi.org/project/kps/))
+* **PyPI** — `pip install kps-idle` ([pypi.org/project/kps-idle](https://pypi.org/project/kps-idle/)); comando CLI: `kps`
 * **AppImageHub** — catálogo comunitario (PR automatizado desde `release.sh`).
 * Homebrew / Winget / Flathub — solo si más adelante mantienes fórmulas o empaquetado distinto (no necesario ahora).
 

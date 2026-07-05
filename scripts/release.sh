@@ -3,7 +3,7 @@
 #
 # Canales para kps:
 #   1. GitHub Releases — binarios (AppImage) y notas de versión (principal)
-#   2. PyPI — pip install kps (código + entry point; deps de plataforma vía install)
+#   2. PyPI — pip install kps-idle (comando CLI: kps)
 #   3. AppImage — adjunto al GitHub Release
 #   4. AppImageHub — catálogo en https://github.com/AppImage/appimage.github.io
 #      (PR con un archivo en data/; inspección automática en GitHub Actions)
@@ -322,6 +322,18 @@ load_pypi_credentials() {
     export TWINE_PASSWORD="${pass}"
 }
 
+get_pypi_name() {
+    grep -E '^name = ' pyproject.toml | sed -E 's/.*"([^"]+)".*/\1/'
+}
+
+pypi_dist_prefix() {
+    get_pypi_name | tr '-' '_'
+}
+
+pypi_dist_glob() {
+    printf 'dist/%s-*' "$(pypi_dist_prefix)"
+}
+
 check_pypi_credentials() {
     if has_pypi_credentials; then
         load_pypi_credentials || true
@@ -364,10 +376,12 @@ run_tests() {
 build_pypi_artifacts() {
     local python_bin
     python_bin="$(ensure_release_tools)"
+    local dist_glob
+    dist_glob="$(pypi_dist_glob)"
     log "Generando sdist y wheel en dist/..."
-    rm -f dist/kps-*.tar.gz dist/kps-*.whl 2>/dev/null || true
+    rm -f "${dist_glob}.tar.gz" "${dist_glob}.whl" 2>/dev/null || true
     "${python_bin}" -m build
-    ls -1 dist/kps-*.tar.gz dist/kps-*.whl >&2
+    ls -1 "${dist_glob}.tar.gz" "${dist_glob}.whl" >&2
 }
 
 upload_pypi() {
@@ -378,13 +392,18 @@ upload_pypi() {
     if [[ ! -x "${twine_bin}" ]]; then
         twine_bin="twine"
     fi
-    if ! ls dist/kps-*.tar.gz dist/kps-*.whl >/dev/null 2>&1; then
+    local dist_glob
+    dist_glob="$(pypi_dist_glob)"
+    if ! ls "${dist_glob}.tar.gz" "${dist_glob}.whl" >/dev/null 2>&1; then
         err "No hay artefactos PyPI en dist/. Ejecuta primero la opción PyPI o 'Todo'."
         return 1
     fi
     log "Subiendo a PyPI (producción)..."
-    "${twine_bin}" upload dist/kps-*.tar.gz dist/kps-*.whl
-    log "PyPI: https://pypi.org/project/kps/${VERSION}/"
+    if ! "${twine_bin}" upload "${dist_glob}.tar.gz" "${dist_glob}.whl"; then
+        err "Falló la subida a PyPI (revisa token, nombre del paquete y versión)."
+        return 1
+    fi
+    log "PyPI: https://pypi.org/project/$(get_pypi_name)/${VERSION}/"
 }
 
 build_appimage() {
@@ -440,7 +459,7 @@ ensure_git_tag() {
 collect_release_assets() {
     RELEASE_ASSETS=()
     local f
-    for f in dist/kps-*.AppImage dist/kps-*.tar.gz dist/kps-*.whl; do
+    for f in dist/kps-*.AppImage "$(pypi_dist_glob).tar.gz" "$(pypi_dist_glob).whl"; do
         [[ -f "${f}" ]] && RELEASE_ASSETS+=("${f}")
     done
 }
