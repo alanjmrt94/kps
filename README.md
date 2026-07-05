@@ -13,6 +13,12 @@ The program works in the background and waits only for inactivity to move the mo
 
 ## Latest changes
 
+Release **v2.0.4** — Windows y PyPI:
+
+* **CI `test-windows`** estable (`linux_uinput_modules`, rutas bundled con `Path.resolve()`)
+* **PyPI**: `pip install kps`
+* **Windows 10/11** validado manualmente (`kps.exe`, idle, movimiento)
+
 Release **v2.0.2** — calidad de código:
 
 * Docstrings en tests, `idle.py` y `generate_icons.py`
@@ -101,7 +107,7 @@ Requisito: `python3`; permisos de **Accesibilidad** pueden ser necesarios para p
 |------------|-------------------|------------------------|
 | Ubuntu 22.04 / 24.04 / **26.04** + GNOME (Wayland) | **Sí** — idle Mutter D-Bus + uinput | Re-login tras install (grupo `uinput`) |
 | Ubuntu MATE (GTK3, X11) | Sí — XScreenSaver + uinput (v1.4.1) | Wayland MATE no verificado |
-| Windows 10/11 | Implementado | Prueba manual pendiente |
+| Windows 10/11 | **Sí** — idle WinAPI + pyautogui + `kps.exe` | Hotkey F1–F12 solo en Windows |
 | macOS 12+ | Implementado | Accesibilidad; prueba manual pendiente |
 
 ## Quick start
@@ -221,7 +227,7 @@ Tras `install.bat` / `install-macos.sh` / `install.sh`, ejecuta el script de bui
 
 * `pyautogui`, `pynput`, `pyobjc-framework-Quartz`
 
-All Python packages are installed from **PyPI** into `.venv` at the project root.
+All Python packages are installed from **PyPI** into `.venv` at the project root (`pip install kps` también disponible como paquete publicado).
 
 ### Linux: permisos uinput (sin sudo)
 
@@ -253,7 +259,7 @@ Instalar en modo editable con dependencias de desarrollo:
 
 Ejecutar tests y lint:
 
-    pytest          # 211 tests; cobertura ≥ 95% en CI
+    pytest          # 214 tests; cobertura ≥ 95% en CI Linux
     pylint kps.py utils/*.py tests/*.py
 
 CI en GitHub corre los mismos checks en cada push/PR a `main`/`master`: `lint`, `mypy`, `test-linux` (3.10–3.12), `test-windows` y **`build-appimage`** (artefacto descargable).
@@ -297,7 +303,7 @@ kps/
 
 See `.cursor/plans/kps_pending.plan.md` for the current roadmap.
 
-**v2.0.2** — docstrings, lint estable, tests CI Windows. **v2.0.1** — AppImage (AppStream, libfuse2, verify bundled). **v2.0.0** — deps mínimas, empaquetado e iconos. Pendiente: pruebas manuales Windows/macOS y PyPI opcional.
+**v2.0.4** — PyPI publicado, Windows validado, CI test-windows OK. **v2.0.2** — docstrings y lint. **v2.0.1** — AppImage. Pendiente: prueba manual macOS.
 
 ## Older releases
 

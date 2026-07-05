@@ -1,6 +1,6 @@
 ---
 name: kps — pendientes
-overview: Estado del proyecto kps v2.0.1 — AppImage estable en Linux con CI; pendiente validación manual Win/macOS y PyPI.
+overview: Estado del proyecto kps v2.0.4 — Linux, Windows y PyPI listos; pendiente validación manual macOS.
 todos:
   - id: fases-0-5
     content: "Fases 0–5 (v1.2–v1.7.2): instalación, multi-OS, UX, CI, tests"
@@ -20,21 +20,27 @@ todos:
   - id: ci-appimage
     content: "v2.0.1: job CI build-appimage (GitHub Actions + artefacto)"
     status: completed
+  - id: v202-quality
+    content: "v2.0.2: docstrings, lint.sh, pylint 10/10"
+    status: completed
+  - id: v204-win-ci
+    content: "v2.0.4: test-windows estable (helpers linux_uinput_modules, rutas bundled)"
+    status: completed
   - id: test-win
     content: "Prueba manual Windows 10/11 (exe + idle + move)"
-    status: pending
+    status: completed
+  - id: pypi
+    content: "Publicación PyPI (pip install kps)"
+    status: completed
   - id: test-macos
     content: "Prueba manual macOS 12+ (.app + Accesibilidad)"
-    status: pending
-  - id: pypi
-    content: "Publicación PyPI (opcional)"
     status: pending
 isProject: true
 ---
 
 # Plan kps — pendientes
 
-> Última actualización: 2026-07-05 · Versión: **v2.0.1**
+> Última actualización: 2026-07-05 · Versión: **v2.0.4**
 
 **Leyenda:** `OK` hecho y testeado · `PENDIENTE` falta hacer o probar
 
@@ -48,10 +54,35 @@ Evitar inactividad del cursor (suspensión, bloqueo, Teams/Slack) en Linux, Wind
 |----------|--------|
 | Instalación simple en Linux | OK |
 | Linux X11 + Wayland | OK (Ubuntu MATE/Xfce + GNOME 26.04) |
-| CI (lint, pytest, mypy, AppImage) | OK |
-| Empaquetado usuario final | OK (scripts; falta probar artefactos Win/mac) |
-| AppImage Linux en uso real | OK (v2.0.1) |
-| Windows / macOS en uso real | PENDIENTE |
+| CI (lint, pytest, mypy, AppImage, test-windows) | OK |
+| Empaquetado usuario final | OK (Linux AppImage, Windows exe, macOS .app) |
+| AppImage Linux en uso real | OK |
+| Windows en uso real | OK (v2.0.4) |
+| PyPI (`pip install kps`) | OK |
+| macOS en uso real | PENDIENTE |
+
+---
+
+## v2.0.4 — Windows, PyPI y CI
+
+| Ítem | Estado |
+|------|--------|
+| CI `test-windows` estable (mock `fcntl`, `linux_uinput_modules`) | OK |
+| Rutas bundled con `Path.resolve()` en tests | OK |
+| `tests/helpers.py` | OK |
+| Publicación PyPI | OK — https://pypi.org/project/kps/ |
+| Prueba manual Windows 10/11 (`kps.exe`) | OK |
+| `release.sh` / `lint.sh` | OK (v2.0.2+) |
+
+---
+
+## v2.0.2 — calidad de código
+
+| Ítem | Estado |
+|------|--------|
+| Docstrings en idle, tests, `generate_icons.py` | OK |
+| `lint.sh` (autopep8 + pylint + mypy) | OK |
+| Pylint 10/10 (41 archivos `.py`) | OK |
 
 ---
 
@@ -62,7 +93,6 @@ Evitar inactividad del cursor (suspensión, bloqueo, Teams/Slack) en Linux, Wind
 | AppStream `io.github.alanjmrt94.kps.appdata.xml` | OK |
 | `run-appimage`: instalar `libfuse2` / fallback sin FUSE | OK |
 | `verify_bundled_runtime()` in-process (`importlib`) | OK (tests) |
-| AppImage dry-run + idle Wayland | OK |
 | CI: job `build-appimage` → artefacto `kps-x86_64.AppImage` | OK |
 
 ---
@@ -75,7 +105,7 @@ Evitar inactividad del cursor (suspensión, bloqueo, Teams/Slack) en Linux, Wind
 | `install.sh` mínimo, `--uninstall` | OK |
 | Bundled: `is_bundled()`, runner in-process | OK |
 | `build_appimage.sh`, `run-appimage`, iconos | OK |
-| ~211 tests, cobertura ~98% | OK |
+| ~214 tests, cobertura ~96% | OK |
 
 ---
 
@@ -100,29 +130,30 @@ Evitar inactividad del cursor (suspensión, bloqueo, Teams/Slack) en Linux, Wind
 | Linux X11 (MATE/Xfce) | OK |
 | Linux Wayland + GNOME | OK (Ubuntu 26.04) |
 | Linux `./run` en VM limpia | OK |
-| Linux AppImage (`./run-appimage`) | OK (v2.0.1) |
-| CI `build-appimage` (GitHub Actions) | OK |
-| Windows 10/11 (`dist/kps.exe`) | PENDIENTE |
+| Linux AppImage (`./run-appimage`) | OK |
+| CI `build-appimage` + `test-windows` (GitHub Actions) | OK |
+| Windows 10/11 (`dist/kps.exe`) | OK (v2.0.4) |
 | macOS 12+ (`dist/kps.app`) | PENDIENTE |
 
 ---
 
 ## Pendiente
 
-1. **PENDIENTE** — Prueba manual Windows: idle WinAPI + `move_win.py` + exe con icono.
-2. **PENDIENTE** — Prueba manual macOS: Quartz + pyautogui + Accesibilidad + `.app`.
-3. **PENDIENTE** — Publicación PyPI (`pip install kps`).
+1. **PENDIENTE** — Prueba manual macOS: Quartz + pyautogui + Accesibilidad + `.app`.
+2. **Opcional** — AppImageHub (PR vía `./scripts/release.sh appimagehub` tras GitHub Release).
 
 ---
 
 ## Referencias
 
 - `CHANGES.md`, `README.md`, `scripts/README.md`, `assets/icons/README.md`
-- CI: `.github/workflows/ci.yml` (job `build-appimage`)
+- CI: `.github/workflows/ci.yml`
+- Publicación: `scripts/release.sh`
+- PyPI: https://pypi.org/project/kps/
 - Entry: `kps.py` → `utils/cli.py` → `utils/runner.py`
 
 ---
 
 ## Histórico (cerrado)
 
-v1.2.0 → v2.0.0: consolidación, multiplataforma, UX, CI, empaquetado e iconos. Detalle en `CHANGES.md`.
+v1.2.0 → v2.0.4: consolidación, multiplataforma, UX, CI, empaquetado, iconos, PyPI y Windows. Detalle en `CHANGES.md`.

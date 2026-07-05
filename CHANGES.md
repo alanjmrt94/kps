@@ -1,5 +1,26 @@
 # Release notes
 
+## 2.0.4
+
+**Windows CI estable, PyPI y validación Windows.**
+
+### CI
+
+* Job **`test-windows`**: tests uinput/move con `linux_uinput_modules()` (mock de `fcntl`)
+* Rutas bundled AppImage comparadas con `Path.resolve()` (compatible drive `D:` en GitHub Actions)
+* **`tests/helpers.py`**: context manager para cargar `utils.move` / `utils.uinput_device` sin Linux
+
+### Publicación
+
+* **PyPI**: [kps en PyPI](https://pypi.org/project/kps/) — `pip install kps`
+* Scripts **`release.sh`** y **`lint.sh`** documentados en `scripts/README.md`
+
+### Validación manual
+
+* **Windows 10/11**: `kps.exe`, idle WinAPI y movimiento pyautogui verificados
+
+---
+
 ## 2.0.2
 
 **Parche calidad de código y CI.**
