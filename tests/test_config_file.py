@@ -1,7 +1,7 @@
 """Tests del cargador de configuración TOML."""
 
 
-# pylint: disable=missing-function-docstring,missing-class-docstring,protected-access,import-outside-toplevel,consider-using-from-import
+# pylint: disable=protected-access,import-outside-toplevel,consider-using-from-import
 from __future__ import annotations
 
 from pathlib import Path
@@ -13,6 +13,7 @@ from utils import config_file
 
 
 def test_parse_kps_section_minimal() -> None:
+    """Comprueba parse kps section minimal."""
     text = """
 [other]
 skip = 1
@@ -35,12 +36,14 @@ x = 1
 
 
 def test_parse_toml_uses_tomllib_when_available() -> None:
+    """Comprueba parse toml uses tomllib when available."""
     text = "[kps]\naway_time = 4\n"
     data = config_file._parse_toml(text)
     assert data["kps"]["away_time"] == 4
 
 
 def test_parse_toml_fallback_minimal(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Comprueba parse toml fallback minimal."""
     import builtins
 
     real_import = builtins.__import__
@@ -56,34 +59,40 @@ def test_parse_toml_fallback_minimal(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_default_config_path_linux(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Comprueba default config path linux."""
     monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
     with patch.object(config_file.sys, "platform", "linux"):
         assert ".config" in str(config_file.default_config_path())
 
 
 def test_default_config_path_xdg(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Comprueba default config path xdg."""
     monkeypatch.setenv("XDG_CONFIG_HOME", "/custom/config")
     with patch.object(config_file.sys, "platform", "linux"):
         assert config_file.default_config_path().as_posix() == "/custom/config/kps/config.toml"
 
 
 def test_default_config_path_windows(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Comprueba default config path windows."""
     monkeypatch.setenv("APPDATA", "/appdata")
     with patch.object(config_file.sys, "platform", "win32"):
         assert config_file.default_config_path().as_posix() == "/appdata/kps/config.toml"
 
 
 def test_load_user_config_from_file(sample_config: Path) -> None:
+    """Comprueba load user config from file."""
     loaded = config_file.load_user_config(sample_config)
     assert loaded["away_time"] == 15
     assert loaded["dry_run"] is True
 
 
 def test_load_user_config_missing_returns_empty(tmp_path: Path) -> None:
+    """Comprueba load user config missing returns empty."""
     assert not config_file.load_user_config(tmp_path / "missing.toml")
 
 
 def test_load_user_config_read_error(tmp_path: Path) -> None:
+    """Comprueba load user config read error."""
     cfg = tmp_path / "bad.toml"
     cfg.write_text("[kps]\naway_time = x\n", encoding="utf-8")
     with patch.object(config_file, "_parse_toml", side_effect=ValueError("bad")):
@@ -91,6 +100,7 @@ def test_load_user_config_read_error(tmp_path: Path) -> None:
 
 
 def test_load_user_config_invalid_section(tmp_path: Path) -> None:
+    """Comprueba load user config invalid section."""
     cfg = tmp_path / "bad.toml"
     cfg.write_text("x", encoding="utf-8")
     with patch.object(config_file, "_parse_toml", return_value={"kps": "not-a-dict"}):
@@ -98,12 +108,14 @@ def test_load_user_config_invalid_section(tmp_path: Path) -> None:
 
 
 def test_coerce_file_values_bool_string() -> None:
+    """Comprueba coerce file values bool string."""
     result = config_file._coerce_file_values({"verbose": "true", "log_file": ""})
     assert result["verbose"] is True
     assert "log_file" not in result
 
 
 def test_file_defaults_merge(sample_config: Path) -> None:
+    """Comprueba file defaults merge."""
     defaults = config_file.file_defaults(sample_config)
     assert defaults["away_time"] == 15
     assert defaults["verbose"] is True

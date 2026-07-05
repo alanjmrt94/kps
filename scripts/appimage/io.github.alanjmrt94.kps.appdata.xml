@@ -20,6 +20,11 @@
   <project_license>GPL-3.0-or-later</project_license>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="2.0.2" date="2026-07-05">
+      <description>
+        <p>Docstrings, lint.sh estable con autopep8 y tests uinput compatibles con CI Windows.</p>
+      </description>
+    </release>
     <release version="2.0.1" date="2026-07-05">
       <description>
         <p>AppImage: AppStream, libfuse2, verify bundled in-process, CI build-appimage.</p>

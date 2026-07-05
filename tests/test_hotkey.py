@@ -1,7 +1,7 @@
 """Tests de hotkey multiplataforma."""
 
 
-# pylint: disable=missing-function-docstring,missing-class-docstring,protected-access,import-outside-toplevel,consider-using-from-import
+# pylint: disable=protected-access,import-outside-toplevel,consider-using-from-import
 from __future__ import annotations
 
 import sys
@@ -21,26 +21,31 @@ from utils.hotkey import (
 
 
 def test_parse_function_key_valid() -> None:
+    """Comprueba parse function key valid."""
     assert parse_function_key("f12") == "F12"
     assert parse_function_key(" F1 ") == "F1"
 
 
 def test_parse_function_key_invalid() -> None:
+    """Comprueba parse function key invalid."""
     assert parse_function_key("ctrl+c") is None
     assert parse_function_key("F13") is None
 
 
 def test_windows_vk_from_hotkey() -> None:
+    """Comprueba windows vk from hotkey."""
     assert windows_vk_from_hotkey("F1") == 0x70
     assert windows_vk_from_hotkey("F12") == 0x7B
     assert windows_vk_from_hotkey("ctrl+c") is None
 
 
 def test_start_hotkey_listener_invalid() -> None:
+    """Comprueba start hotkey listener invalid."""
     assert start_hotkey_listener("ctrl+c", lambda _msg: None) is None
 
 
 def test_start_windows_starts_thread() -> None:
+    """Comprueba start windows starts thread."""
     with patch("utils.hotkey.threading.Thread") as mock_thread:
         mock_thread.return_value.start = MagicMock()
         thread = _start_windows("F1", lambda _msg: None)
@@ -50,6 +55,7 @@ def test_start_windows_starts_thread() -> None:
 
 
 def test_start_hotkey_listener_windows() -> None:
+    """Comprueba start hotkey listener windows."""
     with (
         patch.object(sys, "platform", "win32"),
         patch.object(hotkey, "_start_windows", return_value=MagicMock()) as mock_start,
@@ -59,6 +65,7 @@ def test_start_hotkey_listener_windows() -> None:
 
 
 def test_windows_loop_trigger() -> None:
+    """Comprueba windows loop trigger."""
     user32 = MagicMock()
     user32.RegisterHotKey.return_value = 1
     user32.GetMessageW.side_effect = [1, 0]
@@ -80,6 +87,7 @@ def test_windows_loop_trigger() -> None:
 
 
 def test_start_pynput_import_error() -> None:
+    """Comprueba start pynput import error."""
     import builtins
 
     real_import = builtins.__import__
@@ -108,11 +116,13 @@ def _fake_pynput_modules(
 
 
 def test_start_pynput_unknown_key() -> None:
+    """Comprueba start pynput unknown key."""
     with patch.dict(sys.modules, _fake_pynput_modules()):
         assert _start_pynput("F1", lambda _msg: None) is None
 
 
 def test_start_pynput_success_and_on_press() -> None:
+    """Comprueba start pynput success and on press."""
     target = object()
     captured: dict[str, object] = {}
 

@@ -1,7 +1,7 @@
 """Tests de modo daemon."""
 
 
-# pylint: disable=missing-function-docstring,missing-class-docstring,protected-access,import-outside-toplevel,consider-using-from-import
+# pylint: disable=protected-access,import-outside-toplevel,consider-using-from-import
 from __future__ import annotations
 
 import os
@@ -14,6 +14,7 @@ from utils import daemon
 
 
 def test_is_foreground_child() -> None:
+    """Comprueba is foreground child."""
     assert daemon.is_foreground_child(["kps.py", "--foreground", "-t", "5"]) is True
     assert daemon.is_foreground_child(["kps.py", "-d"]) is False
     with patch.object(daemon.sys, "argv", ["kps.py", "--foreground"]):
@@ -21,15 +22,18 @@ def test_is_foreground_child() -> None:
 
 
 def test_strip_daemon_flags() -> None:
+    """Comprueba strip daemon flags."""
     argv = ["kps.py", "-d", "--daemon", "--foreground", "-t", "5"]
     assert daemon.strip_daemon_flags(argv) == ["kps.py", "-t", "5"]
 
 
 def test_spawn_daemon_skips_foreground_child() -> None:
+    """Comprueba spawn daemon skips foreground child."""
     daemon.spawn_daemon(["kps.py", "--foreground", "-t", "5"])
 
 
 def test_spawn_daemon_bundled() -> None:
+    """Comprueba spawn daemon bundled."""
     mock_proc = MagicMock(pid=5150)
     with (
         patch.object(daemon, "is_bundled", return_value=True),
@@ -47,6 +51,7 @@ def test_spawn_daemon_bundled() -> None:
 
 
 def test_spawn_daemon_unix() -> None:
+    """Comprueba spawn daemon unix."""
     mock_proc = MagicMock(pid=4242)
     with (
         patch.object(daemon.subprocess, "Popen", return_value=mock_proc) as mock_popen,
@@ -61,6 +66,7 @@ def test_spawn_daemon_unix() -> None:
 
 
 def test_spawn_daemon_windows() -> None:
+    """Comprueba spawn daemon windows."""
     mock_proc = MagicMock(pid=999)
     with (
         patch.object(daemon.subprocess, "Popen", return_value=mock_proc) as mock_popen,
@@ -79,6 +85,7 @@ def test_spawn_daemon_windows() -> None:
 
 
 def test_spawn_daemon_unix_prints_kill_hint(capsys: pytest.CaptureFixture[str]) -> None:
+    """Comprueba spawn daemon unix prints kill hint."""
     mock_proc = MagicMock(pid=4242)
     with (
         patch.object(daemon.subprocess, "Popen", return_value=mock_proc),
@@ -92,6 +99,7 @@ def test_spawn_daemon_unix_prints_kill_hint(capsys: pytest.CaptureFixture[str]) 
 
 
 def test_pid_file_roundtrip(tmp_path: Path) -> None:
+    """Comprueba pid file roundtrip."""
     pid_file = tmp_path / "kps.pid"
     daemon.write_pid_file(pid_file)
     assert pid_file.read_text(encoding="utf-8") == str(os.getpid())
@@ -100,6 +108,7 @@ def test_pid_file_roundtrip(tmp_path: Path) -> None:
 
 
 def test_remove_pid_file_none_and_oserror(tmp_path: Path) -> None:
+    """Comprueba remove pid file none and oserror."""
     daemon.remove_pid_file(None)
     pid_file = tmp_path / "kps.pid"
     pid_file.write_text("1", encoding="utf-8")

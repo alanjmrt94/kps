@@ -1,7 +1,7 @@
 """Tests de detección de entorno e idle (mockeado)."""
 
 
-# pylint: disable=missing-function-docstring,missing-class-docstring,protected-access,import-outside-toplevel,consider-using-from-import
+# pylint: disable=protected-access,import-outside-toplevel,consider-using-from-import
 from __future__ import annotations
 
 import sys
@@ -17,6 +17,7 @@ from utils.idle import DesktopIdleMonitor, MacIdleMonitor, WindowsIdleMonitor
 
 
 def test_is_wayland_session(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Comprueba is wayland session."""
     monkeypatch.setenv("XDG_SESSION_TYPE", "wayland")
     assert app.is_wayland_session() is True
     monkeypatch.setenv("XDG_SESSION_TYPE", "x11")
@@ -24,35 +25,41 @@ def test_is_wayland_session(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_is_display_wayland(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Comprueba is display wayland."""
     monkeypatch.setenv("XDG_SESSION_TYPE", "wayland")
     assert app.is_display(Display.WAYLAND) is True
 
 
 def test_is_display_x11_with_display(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Comprueba is display x11 with display."""
     monkeypatch.setenv("XDG_SESSION_TYPE", "x11")
     monkeypatch.setenv("DISPLAY", ":0")
     assert app.is_display(Display.X11) is True
 
 
 def test_is_display_x11_wayland(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Comprueba is display x11 wayland."""
     monkeypatch.setenv("XDG_SESSION_TYPE", "wayland")
     monkeypatch.setenv("DISPLAY", ":0")
     assert app.is_display(Display.X11) is False
 
 
 def test_is_display_x11_no_display(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Comprueba is display x11 no display."""
     monkeypatch.delenv("DISPLAY", raising=False)
     monkeypatch.setenv("XDG_SESSION_TYPE", "x11")
     assert app.is_display(Display.X11) is False
 
 
 def test_is_display_x11_without_display_on_wayland(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Comprueba is display x11 without display on wayland."""
     monkeypatch.delenv("DISPLAY", raising=False)
     monkeypatch.delenv("XDG_SESSION_TYPE", raising=False)
     assert app.is_display(Display.X11) is False
 
 
 def test_is_display_non_x11_wayland() -> None:
+    """Comprueba is display non x11 wayland."""
     assert app.is_display(Display.WIN32) is False
 
 
@@ -68,6 +75,7 @@ def _mock_windll() -> SimpleNamespace:
 
 
 def test_windows_idle_monitor_idle_and_unlocked() -> None:
+    """Comprueba windows idle monitor idle and unlocked."""
     import utils.idle as idle
 
     with patch.object(idle.ctypes, "windll", _mock_windll(), create=True):
@@ -80,6 +88,7 @@ def test_windows_idle_monitor_idle_and_unlocked() -> None:
 
 
 def test_windows_idle_monitor_saver_running() -> None:
+    """Comprueba windows idle monitor saver running."""
     import utils.idle as idle
 
     def fake_spi(_code: int, _zero: int, ref: object, _flags: int) -> int:
@@ -93,6 +102,7 @@ def test_windows_idle_monitor_saver_running() -> None:
 
 
 def test_windows_idle_monitor_locked_progression() -> None:
+    """Comprueba windows idle monitor locked progression."""
     import utils.idle as idle
 
     windll = _mock_windll()
@@ -107,6 +117,7 @@ def test_windows_idle_monitor_locked_progression() -> None:
 
 
 def test_mac_idle_monitor() -> None:
+    """Comprueba mac idle monitor."""
     quartz = MagicMock()
     quartz.CGEventSourceSecondsSinceLastEventType = MagicMock(return_value=12.5)
     quartz.kCGEventSourceStateCombinedSessionState = 0
@@ -118,6 +129,7 @@ def test_mac_idle_monitor() -> None:
 
 @pytest.mark.skipif(sys.platform == "win32", reason="DesktopIdleMonitor")
 def test_desktop_idle_monitor_unavailable_on_linux() -> None:
+    """Comprueba desktop idle monitor unavailable on linux."""
     if sys.platform == "darwin":
         pytest.skip("darwin usa MacIdleMonitor")
     monitor = DesktopIdleMonitor()
@@ -127,6 +139,7 @@ def test_desktop_idle_monitor_unavailable_on_linux() -> None:
 
 @pytest.mark.skipif(sys.platform not in ("win32", "darwin"), reason="solo win/mac")
 def test_desktop_idle_monitor_available() -> None:
+    """Comprueba desktop idle monitor available."""
     with patch("utils.idle.WindowsIdleMonitor") as mock_cls:
         mock_cls.return_value.get_idle_sec.return_value = 2
         monitor = DesktopIdleMonitor()
@@ -136,6 +149,7 @@ def test_desktop_idle_monitor_available() -> None:
 
 @pytest.mark.skipif(sys.platform in ("win32", "darwin"), reason="DBus idle solo Linux")
 def test_dbus_and_idle_monitor_linux() -> None:
+    """Comprueba dbus and idle monitor linux."""
     from utils import dbus_idle
 
     with patch.object(dbus_idle, "get_session_idle_ms", return_value=8000):
@@ -167,6 +181,7 @@ def test_dbus_and_idle_monitor_linux() -> None:
 
 @pytest.mark.skipif(sys.platform in ("win32", "darwin"), reason="LinuxIdleMonitor")
 def test_linux_idle_monitor() -> None:
+    """Comprueba linux idle monitor."""
     import utils.idle as idle
 
     backend = MagicMock()
@@ -185,6 +200,7 @@ def test_linux_idle_monitor() -> None:
 
 @pytest.mark.skipif(sys.platform in ("win32", "darwin"), reason="_get_idle_monitor")
 def test_get_idle_monitor_fallback_chain(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Comprueba get idle monitor fallback chain."""
     import utils.idle as idle
     from utils.dbus_idle import DBusIdleError
 
@@ -209,12 +225,17 @@ def test_get_idle_monitor_fallback_chain(monkeypatch: pytest.MonkeyPatch) -> Non
 
 @pytest.mark.skipif(sys.platform in ("win32", "darwin"), reason="XssIdleMonitor")
 def test_xss_idle_monitor() -> None:
+    """Comprueba xss idle monitor."""
     import utils.idle as idle
 
     class FakeContents:
+        """Contenido simulado de XScreenSaverInfo."""
+
         idle = 4500
 
     class FakeInfo:
+        """Puntero simulado a XScreenSaverInfo."""
+
         contents = FakeContents()
 
     mock_x11 = MagicMock()
@@ -244,6 +265,7 @@ def test_xss_idle_monitor() -> None:
 
 
 def test_desktop_idle_monitor_darwin_branch() -> None:
+    """Comprueba desktop idle monitor darwin branch."""
     import utils.idle as idle
 
     backend = MagicMock()
@@ -279,6 +301,7 @@ def test_monitor_alias_desktop_on_win32_import() -> None:
 
 
 def test_desktop_idle_monitor_win32_branch() -> None:
+    """Comprueba desktop idle monitor win32 branch."""
     import utils.idle as idle
 
     backend = MagicMock()
@@ -294,6 +317,7 @@ def test_desktop_idle_monitor_win32_branch() -> None:
 
 @pytest.mark.skipif(sys.platform in ("win32", "darwin"), reason="LinuxIdleMonitor sin backend")
 def test_linux_idle_monitor_unavailable() -> None:
+    """Comprueba linux idle monitor unavailable."""
     import utils.idle as idle
 
     with patch.object(idle.LinuxIdleMonitor, "_get_idle_monitor", return_value=None):
@@ -303,6 +327,7 @@ def test_linux_idle_monitor_unavailable() -> None:
 
 @pytest.mark.skipif(sys.platform in ("win32", "darwin"), reason="XssIdleMonitor errores")
 def test_xss_idle_monitor_init_failures() -> None:
+    """Comprueba xss idle monitor init failures."""
     import utils.idle as idle
 
     with patch("utils.idle.ctypes.util.find_library", return_value=None):
@@ -374,6 +399,7 @@ def test_xss_idle_monitor_init_failures() -> None:
 
 @pytest.mark.skipif(sys.platform in ("win32", "darwin"), reason="DBusMateIdleMonitor")
 def test_mate_idle_monitor_linux() -> None:
+    """Comprueba mate idle monitor linux."""
     from utils import dbus_idle
 
     with patch.object(dbus_idle, "get_session_idle_ms", return_value=5000):
@@ -385,6 +411,7 @@ def test_mate_idle_monitor_linux() -> None:
 
 @pytest.mark.skipif(sys.platform in ("win32", "darwin"), reason="DBusMateIdleMonitor error")
 def test_mate_idle_monitor_dbus_error() -> None:
+    """Comprueba mate idle monitor dbus error."""
     from utils import dbus_idle
 
     with patch.object(
@@ -403,6 +430,7 @@ def test_mate_idle_monitor_dbus_error() -> None:
 
 @pytest.mark.skipif(sys.platform in ("win32", "darwin"), reason="_get_idle_monitor éxito")
 def test_get_idle_monitor_success_paths(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Comprueba get idle monitor success paths."""
     import utils.idle as idle
     from utils.dbus_idle import DBusIdleError
 

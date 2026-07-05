@@ -1,5 +1,22 @@
 # Release notes
 
+## 2.0.2
+
+**Parche calidad de código y CI.**
+
+### Lint y documentación
+
+* Docstrings en `utils/idle.py`, `scripts/generate_icons.py` y todos los tests
+* **`scripts/lint.sh`**: reparación post-autopep8 de comentarios `# pylint: disable=...` partidos
+* Pylint **10/10** en los 41 archivos `.py` del proyecto
+
+### Tests
+
+* **`test_uinput_device`**: carga vía `importlib` tras `importorskip("fcntl")` (compatible Windows CI)
+* Correcciones pylint en `test_move` y `Protocol` de idle
+
+---
+
 ## 2.0.1
 
 **Parche AppImage y runtime empaquetado.**

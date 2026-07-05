@@ -1,7 +1,7 @@
 """Tests de utilidades de instalación (sin ejecutar install.sh)."""
 
 
-# pylint: disable=missing-function-docstring,missing-class-docstring,protected-access,import-outside-toplevel,consider-using-from-import
+# pylint: disable=protected-access,import-outside-toplevel,consider-using-from-import
 from __future__ import annotations
 
 import builtins
@@ -17,20 +17,24 @@ from utils.const import VENV_DIR_NAME
 
 
 def test_project_root_contains_kps_py() -> None:
+    """Comprueba project root contains kps py."""
     root = install.project_root()
     assert (root / "kps.py").is_file()
     assert (root / "utils").is_dir()
 
 
 def test_scripts_dir() -> None:
+    """Comprueba scripts dir."""
     assert install.scripts_dir() == install.project_root() / "scripts"
 
 
 def test_venv_dir_name() -> None:
+    """Comprueba venv dir name."""
     assert install.venv_dir() == install.project_root() / VENV_DIR_NAME
 
 
 def test_venv_python_and_pip_paths() -> None:
+    """Comprueba venv python and pip paths."""
     with patch.object(install.sys, "platform", "linux"):
         assert install.venv_python().name == "python3"
         assert install.venv_pip().name == "pip"
@@ -40,6 +44,7 @@ def test_venv_python_and_pip_paths() -> None:
 
 
 def test_detect_os_variants() -> None:
+    """Comprueba detect os variants."""
     with patch.object(install.os, "name", "posix"), patch.object(install.sys, "platform", "linux"):
         assert install.detect_os() == "linux"
     with patch.object(install.os, "name", "nt"):
@@ -49,17 +54,20 @@ def test_detect_os_variants() -> None:
 
 
 def test_requirements_and_install_script_exist() -> None:
+    """Comprueba requirements and install script exist."""
     assert install.requirements_file().is_file()
     assert install.platform_install_script().is_file()
 
 
 def test_run_subprocess() -> None:
+    """Comprueba run subprocess."""
     with patch.object(install.subprocess, "run") as mock_run:
         install._run(["echo", "ok"])
         mock_run.assert_called_once()
 
 
 def test_run_platform_install_linux() -> None:
+    """Comprueba run platform install linux."""
     with (
         patch.object(install, "detect_os", return_value="linux"),
         patch.object(install, "_run") as mock_run,
@@ -69,6 +77,7 @@ def test_run_platform_install_linux() -> None:
 
 
 def test_run_platform_install_windows() -> None:
+    """Comprueba run platform install windows."""
     with (
         patch.object(install, "detect_os", return_value="windows"),
         patch.object(install, "_run") as mock_run,
@@ -78,17 +87,20 @@ def test_run_platform_install_windows() -> None:
 
 
 def test_run_platform_install_missing_script(tmp_path: Path) -> None:
+    """Comprueba run platform install missing script."""
     with patch.object(install, "platform_install_script", return_value=tmp_path / "nope.sh"):
         with pytest.raises(FileNotFoundError):
             install.run_platform_install()
 
 
 def test_venv_has_system_site_packages_missing(tmp_path: Path) -> None:
+    """Comprueba venv has system site packages missing."""
     with patch.object(install, "venv_dir", return_value=tmp_path):
         assert install.venv_has_system_site_packages() is False
 
 
 def test_venv_has_system_site_packages_true(tmp_path: Path) -> None:
+    """Comprueba venv has system site packages true."""
     venv = tmp_path / ".venv"
     venv.mkdir()
     (venv / "pyvenv.cfg").write_text("include-system-site-packages = true\n", encoding="utf-8")
@@ -97,6 +109,7 @@ def test_venv_has_system_site_packages_true(tmp_path: Path) -> None:
 
 
 def test_ensure_venv_existing_compatible(tmp_path: Path) -> None:
+    """Comprueba ensure venv existing compatible."""
     venv = tmp_path / ".venv"
     venv.mkdir()
     (venv / "pyvenv.cfg").write_text("include-system-site-packages = false\n", encoding="utf-8")
@@ -108,6 +121,7 @@ def test_ensure_venv_existing_compatible(tmp_path: Path) -> None:
 
 
 def test_ensure_venv_recreate_legacy_system_packages(tmp_path: Path) -> None:
+    """Comprueba ensure venv recreate legacy system packages."""
     venv = tmp_path / ".venv"
     venv.mkdir()
     (venv / "pyvenv.cfg").write_text("include-system-site-packages = true\n", encoding="utf-8")
@@ -122,6 +136,7 @@ def test_ensure_venv_recreate_legacy_system_packages(tmp_path: Path) -> None:
 
 
 def test_ensure_venv_create_new(tmp_path: Path) -> None:
+    """Comprueba ensure venv create new."""
     venv = tmp_path / ".venv"
     with (
         patch.object(install, "venv_dir", return_value=venv),
@@ -133,6 +148,7 @@ def test_ensure_venv_create_new(tmp_path: Path) -> None:
 
 
 def test_install_pip_deps(tmp_path: Path) -> None:
+    """Comprueba install pip deps."""
     venv = tmp_path / ".venv"
     venv.mkdir()
     pip = venv / "bin" / "pip"
@@ -148,12 +164,14 @@ def test_install_pip_deps(tmp_path: Path) -> None:
 
 
 def test_install_pip_deps_missing_requirements(tmp_path: Path) -> None:
+    """Comprueba install pip deps missing requirements."""
     with patch.object(install, "requirements_file", return_value=tmp_path / "missing.txt"):
         with pytest.raises(FileNotFoundError):
             install.install_pip_deps()
 
 
 def test_import_check_and_verify() -> None:
+    """Comprueba import check and verify."""
     ok = subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr="")
     fail = subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr="err")
     py = MagicMock()
@@ -170,11 +188,13 @@ def test_import_check_and_verify() -> None:
 
 
 def test_verify_imports_no_python() -> None:
+    """Comprueba verify imports no python."""
     with patch.object(install, "venv_python", return_value=Path("/no/python")):
         assert install.verify_imports() is False
 
 
 def test_describe_uinput_paths() -> None:
+    """Comprueba describe uinput paths."""
     with (
         patch.object(install, "detect_os", return_value="linux"),
         patch.object(install, "Path") as mock_path,
@@ -207,6 +227,7 @@ def test_describe_uinput_paths() -> None:
 
 
 def test_is_in_uinput_group_no_grp_module() -> None:
+    """Comprueba is in uinput group no grp module."""
     real_import = builtins.__import__
 
     def fake_import(name: str, *args, **kwargs):  # type: ignore[no-untyped-def]
@@ -219,6 +240,7 @@ def test_is_in_uinput_group_no_grp_module() -> None:
 
 
 def test_is_in_uinput_group() -> None:
+    """Comprueba is in uinput group."""
     fake_grp = MagicMock()
     fake_grp.getgrnam.side_effect = KeyError
     with patch.dict(sys.modules, {"grp": fake_grp}):
@@ -234,6 +256,7 @@ def test_is_in_uinput_group() -> None:
 
 
 def test_can_access_uinput() -> None:
+    """Comprueba can access uinput."""
     with patch.object(install, "detect_os", return_value="windows"):
         assert install.can_access_uinput() is True
     with (
@@ -246,6 +269,7 @@ def test_can_access_uinput() -> None:
 
 
 def test_verify_uinput_device() -> None:
+    """Comprueba verify uinput device."""
     py = MagicMock()
     py.is_file.return_value = True
     ok = subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr="")
@@ -277,6 +301,7 @@ def test_verify_uinput_device() -> None:
 
 
 def test_verify_runtime_success(tmp_path: Path) -> None:
+    """Comprueba verify runtime success."""
     venv = tmp_path / ".venv"
     venv.mkdir()
     with (
@@ -288,6 +313,7 @@ def test_verify_runtime_success(tmp_path: Path) -> None:
 
 
 def test_verify_runtime_failures(tmp_path: Path) -> None:
+    """Comprueba verify runtime failures."""
     with patch.object(install, "venv_dir", return_value=tmp_path / "missing"):
         with pytest.raises(RuntimeError, match="entorno virtual"):
             install.verify_runtime()
@@ -302,12 +328,14 @@ def test_verify_runtime_failures(tmp_path: Path) -> None:
 
 
 def test_verify_setup_alias() -> None:
+    """Comprueba verify setup alias."""
     with patch.object(install, "verify_runtime") as mock_rt:
         install.verify_setup()
         mock_rt.assert_called_once()
 
 
 def test_ensure_venv_runtime_noop_and_exec(tmp_path: Path) -> None:
+    """Comprueba ensure venv runtime noop and exec."""
     missing = tmp_path / "missing" / "python3"
     with patch.object(install, "venv_python", return_value=missing):
         install.ensure_venv_runtime()
@@ -332,6 +360,7 @@ def test_ensure_venv_runtime_noop_and_exec(tmp_path: Path) -> None:
 
 
 def test_setup_environment_and_autoinstall() -> None:
+    """Comprueba setup environment and autoinstall."""
     with (
         patch.object(install, "ensure_venv_runtime"),
         patch.object(install, "venv_dir") as mock_venv,
@@ -365,10 +394,12 @@ def test_setup_environment_and_autoinstall() -> None:
 
 
 def test_autoinstall_alias() -> None:
+    """Comprueba autoinstall alias."""
     assert install.Autoinstall is install.autoinstall
 
 
 def test_verify_runtime_linux_success(tmp_path: Path) -> None:
+    """Comprueba verify runtime linux success."""
     venv = tmp_path / ".venv"
     venv.mkdir()
     with (
@@ -382,6 +413,7 @@ def test_verify_runtime_linux_success(tmp_path: Path) -> None:
 
 
 def test_verify_runtime_linux_uinput_issue(tmp_path: Path) -> None:
+    """Comprueba verify runtime linux uinput issue."""
     venv = tmp_path / ".venv"
     venv.mkdir()
     with (
@@ -395,6 +427,7 @@ def test_verify_runtime_linux_uinput_issue(tmp_path: Path) -> None:
 
 
 def test_verify_runtime_linux_uinput_verify_fail(tmp_path: Path) -> None:
+    """Comprueba verify runtime linux uinput verify fail."""
     venv = tmp_path / ".venv"
     venv.mkdir()
     with (
@@ -409,6 +442,7 @@ def test_verify_runtime_linux_uinput_verify_fail(tmp_path: Path) -> None:
 
 
 def test_import_check_result_no_python() -> None:
+    """Comprueba import check result no python."""
     missing_python = MagicMock()
     missing_python.is_file.return_value = False
     with patch.object(install, "venv_python", return_value=missing_python):
@@ -416,6 +450,7 @@ def test_import_check_result_no_python() -> None:
 
 
 def test_verify_imports_failure_empty_stderr() -> None:
+    """Comprueba verify imports failure empty stderr."""
     fail = subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr="")
     py = MagicMock()
     py.is_file.return_value = True
@@ -427,6 +462,7 @@ def test_verify_imports_failure_empty_stderr() -> None:
 
 
 def test_verify_imports_stderr(capsys: pytest.CaptureFixture[str]) -> None:
+    """Comprueba verify imports stderr."""
     fail = subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr="import fail")
     py = MagicMock()
     py.is_file.return_value = True
@@ -439,6 +475,7 @@ def test_verify_imports_stderr(capsys: pytest.CaptureFixture[str]) -> None:
 
 
 def test_install_pip_deps_missing_pip(tmp_path: Path) -> None:
+    """Comprueba install pip deps missing pip."""
     venv = tmp_path / ".venv"
     venv.mkdir()
     with (
@@ -453,6 +490,7 @@ def test_install_pip_deps_missing_pip(tmp_path: Path) -> None:
 
 
 def test_import_check_result_runs_subprocess() -> None:
+    """Comprueba import check result runs subprocess."""
     py = MagicMock()
     py.is_file.return_value = True
     ok = subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr="")
@@ -466,6 +504,7 @@ def test_import_check_result_runs_subprocess() -> None:
 
 
 def test_verify_uinput_device_no_python() -> None:
+    """Comprueba verify uinput device no python."""
     missing_python = MagicMock()
     missing_python.is_file.return_value = False
     with (
@@ -476,6 +515,7 @@ def test_verify_uinput_device_no_python() -> None:
 
 
 def test_can_access_uinput_missing_device() -> None:
+    """Comprueba can access uinput missing device."""
     with (
         patch.object(install, "detect_os", return_value="linux"),
         patch.object(install, "Path") as mock_path,
@@ -487,6 +527,7 @@ def test_can_access_uinput_missing_device() -> None:
 def test_ensure_venv_existing_returns_path(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    """Comprueba ensure venv existing returns path."""
     venv = tmp_path / ".venv"
     venv.mkdir()
     (venv / "pyvenv.cfg").write_text("include-system-site-packages = false\n", encoding="utf-8")
@@ -499,6 +540,7 @@ def test_ensure_venv_existing_returns_path(
 
 
 def test_is_bundled() -> None:
+    """Comprueba is bundled."""
     with patch.object(install.sys, "frozen", True, create=True):
         assert install.is_bundled() is True
     with patch.object(install.sys, "frozen", False, create=True):
@@ -509,6 +551,7 @@ def test_is_bundled() -> None:
 
 
 def test_project_root_bundled() -> None:
+    """Comprueba project root bundled."""
     with (
         patch.object(install, "is_bundled", return_value=True),
         patch.object(install.sys, "executable", "/opt/kps/kps"),
@@ -517,6 +560,7 @@ def test_project_root_bundled() -> None:
 
 
 def test_setup_environment_bundled() -> None:
+    """Comprueba setup environment bundled."""
     with (
         patch.object(install, "is_bundled", return_value=True),
         patch.object(install, "verify_bundled_runtime") as mock_verify,
@@ -528,6 +572,7 @@ def test_setup_environment_bundled() -> None:
 
 
 def test_verify_bundled_runtime_linux() -> None:
+    """Comprueba verify bundled runtime linux."""
     with (
         patch.object(install, "_run_import_check", return_value=True),
         patch.object(install, "detect_os", return_value="linux"),
@@ -538,12 +583,14 @@ def test_verify_bundled_runtime_linux() -> None:
 
 
 def test_verify_bundled_runtime_import_fail() -> None:
+    """Comprueba verify bundled runtime import fail."""
     with patch.object(install, "_run_import_check", return_value=False):
         with pytest.raises(RuntimeError, match="empaquetado"):
             install.verify_bundled_runtime()
 
 
 def test_run_import_check_bundled_inprocess() -> None:
+    """Comprueba run import check bundled inprocess."""
     with (
         patch.object(install, "is_bundled", return_value=True),
         patch.object(install, "_import_check_inprocess", return_value=True) as mock_check,
@@ -553,6 +600,7 @@ def test_run_import_check_bundled_inprocess() -> None:
 
 
 def test_verify_uinput_device_bundled() -> None:
+    """Comprueba verify uinput device bundled."""
     with (
         patch.object(install, "is_bundled", return_value=True),
         patch.object(install, "detect_os", return_value="linux"),
@@ -562,6 +610,7 @@ def test_verify_uinput_device_bundled() -> None:
 
 
 def test_verify_runtime_delegates_to_bundled() -> None:
+    """Comprueba verify runtime delegates to bundled."""
     with (
         patch.object(install, "is_bundled", return_value=True),
         patch.object(install, "verify_bundled_runtime") as mock_bundled,

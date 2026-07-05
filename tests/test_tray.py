@@ -1,7 +1,7 @@
 """Tests del modo bandeja."""
 
 
-# pylint: disable=missing-function-docstring,missing-class-docstring,protected-access,import-outside-toplevel,consider-using-from-import
+# pylint: disable=protected-access,import-outside-toplevel,consider-using-from-import
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
@@ -12,11 +12,13 @@ from utils.tray import run_with_tray
 
 
 def test_run_with_tray_missing_deps() -> None:
+    """Comprueba run with tray missing deps."""
     with pytest.raises(RuntimeError, match="kps\\[gui\\]"):
         run_with_tray("kps", lambda: None, lambda: None)
 
 
 def test_run_with_tray_success() -> None:
+    """Comprueba run with tray success."""
     mock_icon = MagicMock()
     mock_menu = MagicMock()
     mock_item = MagicMock()

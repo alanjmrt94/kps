@@ -13,6 +13,12 @@ The program works in the background and waits only for inactivity to move the mo
 
 ## Latest changes
 
+Release **v2.0.2** — calidad de código:
+
+* Docstrings en tests, `idle.py` y `generate_icons.py`
+* **`lint.sh`**: autopep8 + reparación de comentarios pylint; pylint 10/10
+* Tests uinput compatibles con CI Windows (`importlib`)
+
 Release **v2.0.1** — parche AppImage:
 
 * **AppStream** en AppImage (metadatos validados por `appimagetool`)
@@ -291,7 +297,7 @@ kps/
 
 See `.cursor/plans/kps_pending.plan.md` for the current roadmap.
 
-**v2.0.1** — AppImage (AppStream, libfuse2, verify bundled). **v2.0.0** — deps mínimas, empaquetado e iconos. Pendiente: pruebas manuales Windows/macOS y PyPI opcional.
+**v2.0.2** — docstrings, lint estable, tests CI Windows. **v2.0.1** — AppImage (AppStream, libfuse2, verify bundled). **v2.0.0** — deps mínimas, empaquetado e iconos. Pendiente: pruebas manuales Windows/macOS y PyPI opcional.
 
 ## Older releases
 

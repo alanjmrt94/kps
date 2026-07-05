@@ -1,7 +1,7 @@
 """Tests del entrypoint kps.py."""
 
 
-# pylint: disable=missing-function-docstring,missing-class-docstring,protected-access,import-outside-toplevel,consider-using-from-import
+# pylint: disable=protected-access,import-outside-toplevel,consider-using-from-import
 from __future__ import annotations
 
 import runpy
@@ -18,6 +18,7 @@ import kps
 @patch("kps.setup_logging")
 @patch("kps.parse_args")
 def test_main_success(mock_parse, mock_log_setup, _mock_setup, _mock_loop) -> None:
+    """Comprueba main success."""
     config = MagicMock(
         daemon=False, foreground=False, pid_file=None, hotkey=None, tray=False
     )
@@ -31,6 +32,7 @@ def test_main_success(mock_parse, mock_log_setup, _mock_setup, _mock_loop) -> No
 @patch("kps.spawn_daemon", side_effect=SystemExit(0))
 @patch("kps.parse_args")
 def test_main_daemon_spawns(mock_parse, mock_spawn) -> None:
+    """Comprueba main daemon spawns."""
     config = MagicMock(
         daemon=True,
         foreground=False,
@@ -51,6 +53,7 @@ def test_main_daemon_spawns(mock_parse, mock_spawn) -> None:
 @patch("kps.setup_logging")
 @patch("kps.parse_args")
 def test_main_runtime_error(mock_parse, mock_log_setup, _setup, _loop, _pid) -> None:
+    """Comprueba main runtime error."""
     config = MagicMock(
         daemon=False, foreground=False, pid_file=MagicMock(), hotkey=None, tray=False
     )
@@ -66,6 +69,7 @@ def test_main_runtime_error(mock_parse, mock_log_setup, _setup, _loop, _pid) -> 
 @patch("kps.setup_logging")
 @patch("kps.parse_args")
 def test_main_keyboard_interrupt(mock_parse, mock_log_setup, _setup, _loop) -> None:
+    """Comprueba main keyboard interrupt."""
     config = MagicMock(
         daemon=False, foreground=False, pid_file=None, hotkey=None, tray=False
     )
@@ -84,6 +88,7 @@ def test_main_keyboard_interrupt(mock_parse, mock_log_setup, _setup, _loop) -> N
 def test_main_tray_mode(
     mock_parse, mock_log_setup, mock_loop, _setup, mock_tray
 ) -> None:
+    """Comprueba main tray mode."""
     config = MagicMock(
         daemon=False, foreground=False, pid_file=None, hotkey=None, tray=True
     )
@@ -109,6 +114,7 @@ def test_main_tray_mode(
 def test_main_tray_worker_runtime_error(
     mock_parse, mock_log_setup, _loop, _setup, mock_tray
 ) -> None:
+    """Comprueba main tray worker runtime error."""
     config = MagicMock(
         daemon=False, foreground=False, pid_file=None, hotkey=None, tray=True
     )
@@ -127,6 +133,7 @@ def test_main_tray_worker_runtime_error(
 
 
 def test_kps_main_module() -> None:
+    """Comprueba kps main module."""
     kps_path = Path(kps.__file__)
     config = MagicMock(
         daemon=False,

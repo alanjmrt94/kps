@@ -1,7 +1,7 @@
 """Tests de constantes y enums."""
 
 
-# pylint: disable=missing-function-docstring,missing-class-docstring,protected-access,import-outside-toplevel,consider-using-from-import
+# pylint: disable=protected-access,import-outside-toplevel,consider-using-from-import
 from __future__ import annotations
 
 import importlib
@@ -21,20 +21,24 @@ from utils.const import (
 
 
 def test_version_format() -> None:
+    """Comprueba version format."""
     parts = Version.split(".")
     assert len(parts) == 3
 
 
 def test_defaults_positive() -> None:
+    """Comprueba defaults positive."""
     assert DEFAULT_AWAY_TIME >= 1
     assert DEFAULT_POLL_INTERVAL >= 1
 
 
 def test_config_filename() -> None:
+    """Comprueba config filename."""
     assert CONFIG_FILENAME.endswith(".toml")
 
 
 def test_display_str_and_values() -> None:
+    """Comprueba display str and values."""
     assert str(Display.X11) == Display.X11.value
     assert str(Display.WAYLAND) == "GdkWaylandDisplay"
     assert str(Display.WIN32) == Display.WIN32.value
@@ -42,6 +46,7 @@ def test_display_str_and_values() -> None:
 
 
 def test_idle_state_values() -> None:
+    """Comprueba idle state values."""
     assert str(IdleState.AWAKE) == "awake"
     assert str(IdleState.AWAY) == "away"
     assert str(IdleState.XA) == "extended away"
@@ -49,6 +54,7 @@ def test_idle_state_values() -> None:
 
 
 def test_os_type_values() -> None:
+    """Comprueba os type values."""
     assert str(OsType.UNIX) == "posix"
     assert str(OsType.WINDOWS) == "nt"
 
@@ -60,6 +66,7 @@ def test_strenum_polyfill_on_python310() -> None:
         assert issubclass(const_mod.StrEnum, str)
 
         class _Sample(const_mod.StrEnum):
+            """Clase auxiliar _Sample para pruebas."""
             FOO = "bar"
 
         assert _Sample.FOO == "bar"

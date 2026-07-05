@@ -1,7 +1,7 @@
 """Tests del bucle principal (unidad, sin bucle infinito)."""
 
 
-# pylint: disable=missing-function-docstring,missing-class-docstring,protected-access,import-outside-toplevel,consider-using-from-import
+# pylint: disable=protected-access,import-outside-toplevel,consider-using-from-import
 from __future__ import annotations
 
 import sys
@@ -20,10 +20,12 @@ _FAKE_ROOT = Path("fake", "project", "root")
 
 
 def test_now_timestamp_format() -> None:
+    """Comprueba now timestamp format."""
     assert len(now_timestamp()) == 8
 
 
 def test_move_script_path_linux() -> None:
+    """Comprueba move script path linux."""
     with (
         patch.object(runner, "project_root", return_value=_FAKE_ROOT),
         patch.object(sys, "platform", "linux"),
@@ -35,6 +37,7 @@ def test_move_script_path_linux() -> None:
 
 
 def test_move_script_path_windows() -> None:
+    """Comprueba move script path windows."""
     with (
         patch.object(runner, "project_root", return_value=_FAKE_ROOT),
         patch.object(runner.os, "name", OsType.WINDOWS),
@@ -45,6 +48,7 @@ def test_move_script_path_windows() -> None:
 
 
 def test_move_script_path_macos() -> None:
+    """Comprueba move script path macos."""
     with (
         patch.object(runner, "project_root", return_value=_FAKE_ROOT),
         patch.object(sys, "platform", "darwin"),
@@ -56,6 +60,7 @@ def test_move_script_path_macos() -> None:
 
 
 def test_run_move_success() -> None:
+    """Comprueba run move success."""
     with (
         patch("utils.runner.time.sleep"),
         patch("utils.move.move_once") as mock_move,
@@ -67,6 +72,7 @@ def test_run_move_success() -> None:
 
 
 def test_run_move_failure() -> None:
+    """Comprueba run move failure."""
     with (
         patch("utils.move.move_once", side_effect=OSError("uinput fail")),
         patch.object(sys, "platform", "linux"),
@@ -76,6 +82,7 @@ def test_run_move_failure() -> None:
 
 
 def test_run_move_failure_no_stderr() -> None:
+    """Comprueba run move failure no stderr."""
     with (
         patch("utils.move_win.main", return_value=1),
         patch.object(runner.os, "name", OsType.WINDOWS),
@@ -84,6 +91,7 @@ def test_run_move_failure_no_stderr() -> None:
 
 
 def test_run_move_bundled_linux() -> None:
+    """Comprueba run move bundled linux."""
     with (
         patch("utils.runner.time.sleep"),
         patch("utils.move.move_once") as mock_move,
@@ -95,11 +103,13 @@ def test_run_move_bundled_linux() -> None:
 
 
 def test_interruptible_sleep_completes() -> None:
+    """Comprueba interruptible sleep completes."""
     ctrl = ShutdownController()
     assert interruptible_sleep(0.1, ctrl) is False
 
 
 def test_interruptible_sleep_shutdown() -> None:
+    """Comprueba interruptible sleep shutdown."""
     ctrl = ShutdownController()
     ctrl.request("test")
     assert interruptible_sleep(2.0, ctrl) is True
@@ -108,6 +118,7 @@ def test_interruptible_sleep_shutdown() -> None:
 @patch("utils.idle.Monitor")
 @patch("utils.runner.interruptible_sleep", return_value=True)
 def test_run_loop_exits_on_shutdown(_sleep: MagicMock, mock_monitor: MagicMock) -> None:
+    """Comprueba run loop exits on shutdown."""
     mock_monitor.is_available.return_value = True
     mock_monitor.get_idle_sec.return_value = 0
     ctrl = ShutdownController()
@@ -122,6 +133,7 @@ def test_run_loop_moves_mouse(
     mock_move: MagicMock,
     mock_monitor: MagicMock,
 ) -> None:
+    """Comprueba run loop moves mouse."""
     mock_monitor.is_available.return_value = True
     mock_monitor.get_idle_sec.return_value = 99
     ctrl = ShutdownController()
@@ -137,6 +149,7 @@ def test_run_loop_dry_run_no_move(
     mock_move: MagicMock,
     mock_monitor: MagicMock,
 ) -> None:
+    """Comprueba run loop dry run no move."""
     mock_monitor.is_available.return_value = True
     mock_monitor.get_idle_sec.return_value = 99
     ctrl = ShutdownController()
@@ -146,6 +159,7 @@ def test_run_loop_dry_run_no_move(
 
 @patch("utils.idle.Monitor")
 def test_run_loop_monitor_unavailable(mock_monitor: MagicMock) -> None:
+    """Comprueba run loop monitor unavailable."""
     mock_monitor.is_available.return_value = False
     with pytest.raises(SystemExit) as exc:
         run_loop(KpsConfig())
@@ -158,6 +172,7 @@ def test_run_loop_activity_branch(
     _sleep: MagicMock,
     mock_monitor: MagicMock,
 ) -> None:
+    """Comprueba run loop activity branch."""
     mock_monitor.is_available.return_value = True
     mock_monitor.get_idle_sec.return_value = 0
     ctrl = ShutdownController()
@@ -166,6 +181,7 @@ def test_run_loop_activity_branch(
 
 @patch("utils.idle.Monitor")
 def test_run_loop_shutdown_before_loop(mock_monitor: MagicMock) -> None:
+    """Comprueba run loop shutdown before loop."""
     mock_monitor.is_available.return_value = True
     ctrl = ShutdownController()
     ctrl.request("ya detenido")
@@ -182,6 +198,7 @@ def test_run_loop_keyboard_pulse(
     mock_pulse: MagicMock,
     mock_monitor: MagicMock,
 ) -> None:
+    """Comprueba run loop keyboard pulse."""
     mock_monitor.is_available.return_value = True
     mock_monitor.get_idle_sec.return_value = 99
     ctrl = ShutdownController()
@@ -214,6 +231,7 @@ def test_run_loop_move_then_shutdown(
     mock_move: MagicMock,
     mock_monitor: MagicMock,
 ) -> None:
+    """Comprueba run loop move then shutdown."""
     mock_monitor.is_available.return_value = True
     mock_monitor.get_idle_sec.return_value = 99
     ctrl = ShutdownController()

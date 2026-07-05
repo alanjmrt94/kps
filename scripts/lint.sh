@@ -121,6 +121,28 @@ run_autopep8() {
         --max-line-length="${MAX_LINE_LENGTH}" \
         --aggressive \
         "${PY_FILES[@]}"
+    # autopep8 puede partir líneas "# pylint: disable=..." largas; reparar.
+    while IFS= read -r -d '' pyfile; do
+        if grep -q '^# pylint:$' "${pyfile}" 2>/dev/null; then
+            "${py}" - "${pyfile}" <<'PY'
+import pathlib
+import re
+import sys
+
+path = pathlib.Path(sys.argv[1])
+text = path.read_text(encoding="utf-8")
+text = re.sub(
+    r"^# pylint:\n# disable=([^\n]+)\n",
+    lambda m: "# pylint: disable=" + m.group(1).replace("\n", "") + "\n",
+    text,
+    flags=re.MULTILINE,
+)
+path.write_text(text, encoding="utf-8")
+PY
+        fi
+    done < <(find "${PROJECT_ROOT}" -type f -name '*.py' \
+        ! -path '*/.venv/*' ! -path '*/build/*' ! -path '*/dist/*' \
+        -print0)
     log "autopep8 terminado."
 }
 

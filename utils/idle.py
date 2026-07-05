@@ -19,7 +19,9 @@
 # You should have received a copy of the GNU General Public License
 # along with Gajim. If not, see <http://www.gnu.org/licenses/>.
 #
-# pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring,invalid-name,too-few-public-methods,ungrouped-imports
+"""Monitores de tiempo de inactividad del usuario (Windows, macOS y Linux)."""
+
+# pylint: disable=invalid-name,too-few-public-methods,ungrouped-imports
 
 import ctypes
 import ctypes.util
@@ -32,6 +34,8 @@ log = logging.getLogger('kps.u.idle')
 
 
 class WindowsIdleMonitor:
+    """Tiempo idle en Windows vía GetLastInputInfo y estado de pantalla."""
+
     def __init__(self):
         self.OpenInputDesktop = ctypes.windll.user32.OpenInputDesktop
         self.CloseDesktop = ctypes.windll.user32.CloseDesktop
@@ -42,17 +46,20 @@ class WindowsIdleMonitor:
         self._locked_time = None
 
         class LASTINPUTINFO(ctypes.Structure):
+            """Estructura Win32 LASTINPUTINFO para GetLastInputInfo."""
+
             _fields_ = [('cbSize', ctypes.c_uint), ('dwTime', ctypes.c_uint)]
 
         self.lastInputInfo = LASTINPUTINFO()
         self.lastInputInfo.cbSize = ctypes.sizeof(self.lastInputInfo)
 
     def get_idle_sec(self):
+        """Segundos desde la última entrada del usuario."""
         self.GetLastInputInfo(ctypes.byref(self.lastInputInfo))
         return float(self.GetTickCount() - self.lastInputInfo.dwTime) / 1000
 
     def is_extended_away(self):
-        # Check if Screen Saver is running
+        """True si el salvapantallas está activo o la pantalla lleva >10 s bloqueada."""
         # 0x72 is SPI_GETSCREENSAVERRUNNING
         saver_runing = ctypes.c_int(0)
         info = self.SystemParametersInfo(
@@ -94,9 +101,11 @@ class MacIdleMonitor:
         self._source_state = kCGEventSourceStateCombinedSessionState
 
     def get_idle_sec(self):
+        """Segundos desde el último evento de entrada en la sesión."""
         return self._seconds_since(self._source_state)
 
     def is_extended_away(self):
+        """macOS: no distingue ausencia extendida; siempre False."""
         return False
 
 
@@ -105,8 +114,10 @@ if TYPE_CHECKING:
     class _MonitorApi(Protocol):
         """API mínima compartida por IdleMonitor y DesktopIdleMonitor."""
 
+        # pylint: disable=missing-function-docstring,unnecessary-ellipsis
         def is_available(self) -> bool: ...
 
+        # pylint: disable=missing-function-docstring,unnecessary-ellipsis
         def get_idle_sec(self) -> float | int: ...
 
 
@@ -122,9 +133,11 @@ class DesktopIdleMonitor:
             self._idle_monitor = None
 
     def is_available(self):
+        """Indica si hay monitor idle en la plataforma actual."""
         return self._idle_monitor is not None
 
     def get_idle_sec(self):
+        """Segundos de inactividad; 0 si no hay monitor disponible."""
         if self._idle_monitor is None:
             return 0
         return self._idle_monitor.get_idle_sec()
@@ -140,11 +153,15 @@ if sys.platform not in ('win32', 'darwin'):
     )
 
     class XssIdleMonitor:
+        """Tiempo idle en X11 vía extensión XScreenSaver."""
+
         def __init__(self):
 
             self._extended_away = False
 
             class XScreenSaverInfo(ctypes.Structure):
+                """Estructura XScreenSaverInfo de libXss."""
+
                 _fields_ = [
                     ('window', ctypes.c_ulong),
                     ('state', ctypes.c_int),
@@ -196,6 +213,7 @@ if sys.platform not in ('win32', 'darwin'):
             self.rootwindow = libX11.XDefaultRootWindow(self.dpy_p)
 
         def get_idle_sec(self):
+            """Segundos de inactividad según XScreenSaverQueryInfo."""
             info = self.libXss.XScreenSaverQueryInfo(
                 self.dpy_p, self.rootwindow, self.xss_info_p)
             if info == 0:
@@ -203,9 +221,11 @@ if sys.platform not in ('win32', 'darwin'):
             return int(self.xss_info_p.contents.idle / 1000)
 
         def set_extended_away(self, state):
+            """Marca estado de ausencia extendida (no usado en X11)."""
             self._extended_away = state
 
         def is_extended_away(self):
+            """X11: no distingue ausencia extendida; siempre False."""
             return False
 
     class LinuxIdleMonitor:
@@ -215,15 +235,18 @@ if sys.platform not in ('win32', 'darwin'):
             self._idle_monitor = self._get_idle_monitor()
 
         def is_available(self) -> bool:
+            """Indica si se encontró un backend idle en Linux."""
             return self._idle_monitor is not None
 
         def get_idle_sec(self) -> float | int:
+            """Segundos de inactividad; 0 si no hay monitor."""
             if self._idle_monitor is None:
                 return 0
             return cast(float | int, self._idle_monitor.get_idle_sec())
 
         @staticmethod
         def _get_idle_monitor():
+            """Elige el mejor monitor idle disponible (D-Bus o XScreenSaver)."""
             try:
                 monitor = DBusFreedesktopIdleMonitor()
                 log.info('Monitor idle: D-Bus (org.freedesktop.ScreenSaver)')

@@ -1,7 +1,7 @@
 """Tests de cierre graceful."""
 
 
-# pylint: disable=missing-function-docstring,missing-class-docstring,protected-access,import-outside-toplevel,consider-using-from-import
+# pylint: disable=protected-access,import-outside-toplevel,consider-using-from-import
 from __future__ import annotations
 
 import signal
@@ -14,6 +14,7 @@ from utils.shutdown import ShutdownController, _windows_hotkey_loop, _windows_vk
 
 
 def test_shutdown_request_once() -> None:
+    """Comprueba shutdown request once."""
     ctrl = ShutdownController()
     ctrl.request("test")
     assert ctrl.requested is True
@@ -23,6 +24,7 @@ def test_shutdown_request_once() -> None:
 
 
 def test_handle_signal_sigint() -> None:
+    """Comprueba handle signal sigint."""
     ctrl = ShutdownController()
     ctrl._handle_signal(signal.SIGINT, None)
     assert ctrl.requested
@@ -31,16 +33,19 @@ def test_handle_signal_sigint() -> None:
 
 @pytest.mark.skipif(not hasattr(signal, "SIGUSR1"), reason="SIGUSR1")
 def test_handle_signal_sigusr1() -> None:
+    """Comprueba handle signal sigusr1."""
     ctrl = ShutdownController()
     ctrl._handle_signal(signal.SIGUSR1, None)
     assert "SIGUSR1" in ctrl.reason
 
 
 def test_install_signal_handlers() -> None:
+    """Comprueba install signal handlers."""
     ShutdownController().install_signal_handlers()
 
 
 def test_install_signal_handlers_without_sigusr1() -> None:
+    """Comprueba install signal handlers without sigusr1."""
     def fake_hasattr(obj: object, name: str) -> bool:
         if name == "SIGUSR1":
             return False
@@ -51,10 +56,12 @@ def test_install_signal_handlers_without_sigusr1() -> None:
 
 
 def test_start_hotkey_none() -> None:
+    """Comprueba start hotkey none."""
     ShutdownController().start_hotkey_listener(None)
 
 
 def test_start_hotkey_skips_log_when_listener_fails() -> None:
+    """Comprueba start hotkey skips log when listener fails."""
     with patch("utils.shutdown.start_hotkey_listener", return_value=None):
         with patch("utils.shutdown.log") as mock_log:
             ShutdownController().start_hotkey_listener("F1")
@@ -62,6 +69,7 @@ def test_start_hotkey_skips_log_when_listener_fails() -> None:
 
 
 def test_start_hotkey_logs_when_registered() -> None:
+    """Comprueba start hotkey logs when registered."""
     mock_thread = MagicMock()
     with patch("utils.shutdown.start_hotkey_listener", return_value=mock_thread):
         with patch("utils.shutdown.log") as mock_log:
@@ -70,6 +78,7 @@ def test_start_hotkey_logs_when_registered() -> None:
 
 
 def test_start_hotkey_non_windows() -> None:
+    """Comprueba start hotkey non windows."""
     with (
         patch.object(sys, "platform", "linux"),
         patch("utils.hotkey._start_pynput", return_value=MagicMock()),
@@ -78,11 +87,13 @@ def test_start_hotkey_non_windows() -> None:
 
 
 def test_start_hotkey_invalid_windows() -> None:
+    """Comprueba start hotkey invalid windows."""
     with patch.object(sys, "platform", "win32"):
         ShutdownController().start_hotkey_listener("ctrl+c")
 
 
 def test_start_hotkey_windows_starts_thread() -> None:
+    """Comprueba start hotkey windows starts thread."""
     with (
         patch.object(sys, "platform", "win32"),
         patch("utils.shutdown.threading.Thread") as mock_thread,
@@ -95,6 +106,7 @@ def test_start_hotkey_windows_starts_thread() -> None:
 
 
 def test_windows_vk_from_hotkey() -> None:
+    """Comprueba windows vk from hotkey."""
     assert _windows_vk_from_hotkey("f12") == 0x7B
     assert _windows_vk_from_hotkey("F1") == 0x70
     assert _windows_vk_from_hotkey("ctrl+c") is None
@@ -102,6 +114,7 @@ def test_windows_vk_from_hotkey() -> None:
 
 
 def test_windows_hotkey_loop_register_fail() -> None:
+    """Comprueba windows hotkey loop register fail."""
     user32 = MagicMock()
     user32.RegisterHotKey.return_value = 0
     mock_ctypes = MagicMock()
@@ -117,6 +130,7 @@ def test_windows_hotkey_loop_register_fail() -> None:
 
 
 def test_windows_hotkey_loop_trigger() -> None:
+    """Comprueba windows hotkey loop trigger."""
     user32 = MagicMock()
     user32.RegisterHotKey.return_value = 1
     user32.GetMessageW.side_effect = [1, 0]
@@ -140,12 +154,14 @@ def test_windows_hotkey_loop_trigger() -> None:
 
 
 def test_handle_signal_sigterm() -> None:
+    """Comprueba handle signal sigterm."""
     ctrl = ShutdownController()
     ctrl._handle_signal(signal.SIGTERM, None)
     assert "SIGTERM" in ctrl.reason
 
 
 def test_windows_hotkey_loop_non_hotkey_message() -> None:
+    """Comprueba windows hotkey loop non hotkey message."""
     user32 = MagicMock()
     user32.RegisterHotKey.return_value = 1
     user32.GetMessageW.side_effect = [1, 0]

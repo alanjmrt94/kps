@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """Genera la suite de iconos de kps desde assets/image_base.png."""
 
-# pylint: disable=missing-function-docstring
-
 from __future__ import annotations
 
 import argparse
@@ -23,31 +21,38 @@ APPIMAGE_SIZE = 256
 
 
 def project_root() -> Path:
+    """Raíz del repositorio kps."""
     return Path(__file__).resolve().parent.parent
 
 
 def default_source() -> Path:
+    """Ruta por defecto de assets/image_base.png."""
     return project_root() / "assets" / "image_base.png"
 
 
 def default_icns_source() -> Path:
+    """Ruta por defecto de assets/image_base.icns."""
     return project_root() / "assets" / "image_base.icns"
 
 
 def icons_dir() -> Path:
+    """Directorio de salida assets/icons."""
     return project_root() / "assets" / "icons"
 
 
 def log(msg: str) -> None:
+    """Mensaje informativo en stdout."""
     print(f"[kps icons] {msg}")
 
 
 def die(msg: str, code: int = 1) -> None:
+    """Mensaje de error en stderr y salida con código."""
     print(f"[kps icons] ERROR: {msg}", file=sys.stderr)
     sys.exit(code)
 
 
 def load_source(path: Path) -> Image.Image:
+    """Carga y valida la imagen PNG base en RGBA."""
     if not path.is_file():
         die(f"No se encontró la imagen base: {path}")
     try:
@@ -59,15 +64,18 @@ def load_source(path: Path) -> Image.Image:
 
 
 def resize_icon(master: Image.Image, size: int) -> Image.Image:
+    """Redimensiona el icono maestro a size×size."""
     return master.resize((size, size), Image.Resampling.LANCZOS)
 
 
 def write_png(image: Image.Image, dest: Path) -> None:
+    """Guarda una imagen PNG optimizada en dest."""
     dest.parent.mkdir(parents=True, exist_ok=True)
     image.save(dest, format="PNG", optimize=True)
 
 
 def generate_hicolor(master: Image.Image, out: Path) -> None:
+    """Genera el árbol hicolor Linux y PNG de bandeja/AppImage."""
     log("Generando PNG hicolor...")
     for size in HICOLOR_SIZES:
         dest = out / "linux" / "hicolor" / f"{size}x{size}" / "apps" / "kps.png"
@@ -84,6 +92,7 @@ def generate_hicolor(master: Image.Image, out: Path) -> None:
 
 
 def generate_ico(master: Image.Image, dest: Path) -> None:
+    """Genera kps.ico con múltiples tamaños para Windows."""
     log("Generando kps.ico (Windows)...")
     images = [resize_icon(master, size) for size in ICO_SIZES]
     dest.parent.mkdir(parents=True, exist_ok=True)
@@ -97,6 +106,7 @@ def generate_ico(master: Image.Image, dest: Path) -> None:
 
 
 def _iconset_pngs(master: Image.Image, iconset: Path) -> None:
+    """Escribe PNG 1x y 2x en un directorio .iconset de macOS."""
     iconset.mkdir(parents=True, exist_ok=True)
     for size in ICNS_ICONSET_SIZES:
         write_png(resize_icon(master, size), iconset / f"icon_{size}x{size}.png")
@@ -104,6 +114,7 @@ def _iconset_pngs(master: Image.Image, iconset: Path) -> None:
 
 
 def generate_icns_macos(master: Image.Image, dest: Path) -> bool:
+    """Genera kps.icns con iconutil (solo macOS)."""
     if sys.platform != "darwin" or not shutil.which("iconutil"):
         return False
     log("Generando kps.icns (macOS iconutil)...")
@@ -120,6 +131,7 @@ def generate_icns_macos(master: Image.Image, dest: Path) -> bool:
 
 
 def generate_icns_magick(master: Image.Image, dest: Path) -> bool:
+    """Genera kps.icns con ImageMagick si está disponible."""
     magick = shutil.which("magick") or shutil.which("convert")
     if not magick:
         return False
@@ -149,6 +161,7 @@ def install_icns_from_base(dest: Path, icns_source: Path | None = None) -> bool:
 
 
 def generate_icns(master: Image.Image, dest: Path, icns_source: Path | None = None) -> None:
+    """Genera o copia kps.icns según herramientas disponibles."""
     if install_icns_from_base(dest, icns_source):
         return
     if generate_icns_macos(master, dest):
@@ -172,6 +185,7 @@ def archive_source(source: Path, out: Path) -> None:
 
 
 def parse_args() -> argparse.Namespace:
+    """Argumentos de línea de comandos del generador de iconos."""
     parser = argparse.ArgumentParser(
         description="Genera iconos kps desde assets/image_base.png",
     )
@@ -204,6 +218,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    """Punto de entrada: genera todos los iconos en assets/icons."""
     args = parse_args()
     source = args.source.resolve()
     out = args.output.resolve()
