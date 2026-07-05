@@ -12,7 +12,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from utils import app
-from utils.const import Display, IdleState
+from utils.const import Display
 from utils.idle import DesktopIdleMonitor, MacIdleMonitor, WindowsIdleMonitor
 
 
@@ -28,56 +28,28 @@ def test_is_display_wayland(monkeypatch: pytest.MonkeyPatch) -> None:
     assert app.is_display(Display.WAYLAND) is True
 
 
-@patch("utils.app._gdk_display_class_name", return_value="X11Display")
-def test_is_display_x11_match(_mock: object, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_is_display_x11_with_display(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("XDG_SESSION_TYPE", "x11")
+    monkeypatch.setenv("DISPLAY", ":0")
     assert app.is_display(Display.X11) is True
 
 
-@patch("utils.app._gdk_display_class_name", return_value="OtherDisplay")
-def test_is_display_x11_mismatch(_mock: object, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_is_display_x11_wayland(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("XDG_SESSION_TYPE", "wayland")
+    monkeypatch.setenv("DISPLAY", ":0")
+    assert app.is_display(Display.X11) is False
+
+
+def test_is_display_x11_no_display(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("DISPLAY", raising=False)
     monkeypatch.setenv("XDG_SESSION_TYPE", "x11")
     assert app.is_display(Display.X11) is False
 
 
-@patch("utils.app._gdk_display_class_name", return_value=None)
-def test_is_display_x11_no_default(_mock: object, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("XDG_SESSION_TYPE", "x11")
+def test_is_display_x11_without_display_on_wayland(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("DISPLAY", raising=False)
+    monkeypatch.delenv("XDG_SESSION_TYPE", raising=False)
     assert app.is_display(Display.X11) is False
-
-
-@patch("utils.app._gdk_display_class_name", side_effect=ImportError("no gdk"))
-def test_is_display_x11_without_gdk(_mock: object, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("XDG_SESSION_TYPE", "x11")
-    assert app.is_display(Display.X11) is True
-
-
-def test_gdk_display_class_name() -> None:
-    import types
-
-    mock_gdk = MagicMock()
-    mock_display = MagicMock()
-    mock_display.__class__.__name__ = "X11Display"
-    mock_gdk.Display.get_default.return_value = mock_display
-    fake_gi = types.ModuleType("gi")
-    fake_gi.require_version = MagicMock()
-    fake_repo = types.ModuleType("gi.repository")
-    fake_repo.Gdk = mock_gdk
-    with patch.dict(sys.modules, {"gi": fake_gi, "gi.repository": fake_repo}):
-        assert app._gdk_display_class_name() == "X11Display"
-
-
-def test_gdk_display_class_name_no_display() -> None:
-    import types
-
-    mock_gdk = MagicMock()
-    mock_gdk.Display.get_default.return_value = None
-    fake_gi = types.ModuleType("gi")
-    fake_gi.require_version = MagicMock()
-    fake_repo = types.ModuleType("gi.repository")
-    fake_repo.Gdk = mock_gdk
-    with patch.dict(sys.modules, {"gi": fake_gi, "gi.repository": fake_repo}):
-        assert app._gdk_display_class_name() is None
 
 
 def test_is_display_non_x11_wayland() -> None:
@@ -162,123 +134,77 @@ def test_desktop_idle_monitor_available() -> None:
         assert monitor.get_idle_sec() == 2
 
 
-@pytest.mark.skipif(sys.platform in ("win32", "darwin"), reason="GObject idle solo Linux")
+@pytest.mark.skipif(sys.platform in ("win32", "darwin"), reason="DBus idle solo Linux")
 def test_dbus_and_idle_monitor_linux() -> None:
-    import utils.idle as idle
+    from utils import dbus_idle
 
-    mock_proxy = MagicMock()
-    mock_proxy.call_sync.return_value = (8000,)
-
-    class FakeError(Exception):
-        pass
-
-    fake_glib = MagicMock()
-    fake_glib.Error = FakeError
-
-    with (
-        patch.object(idle, "GLib", fake_glib),
-        patch.object(idle.Gio.DBusProxy, "new_for_bus_sync", return_value=mock_proxy),
-    ):
-        freedesktop = idle.DBusFreedesktopIdleMonitor()
+    with patch.object(dbus_idle, "get_session_idle_ms", return_value=8000):
+        freedesktop = dbus_idle.DBusFreedesktopIdleMonitor()
         assert freedesktop.get_idle_sec() == 8
         freedesktop.set_extended_away(True)
         assert freedesktop.is_extended_away() is True
 
-        gnome = idle.DBusGnomeIdleMonitor()
+        gnome = dbus_idle.DBusGnomeIdleMonitor()
         assert gnome.get_idle_sec() == 8
-        gnome.set_extended_away(True)
-        assert gnome.is_extended_away() is True
 
-    with (
-        patch.object(idle, "GLib", fake_glib),
-        patch.object(idle.Gio.DBusProxy, "new_for_bus_sync", return_value=mock_proxy),
+    with patch.object(
+        dbus_idle,
+        "get_session_idle_ms",
+        side_effect=dbus_idle.DBusIdleError("fail"),
     ):
-        freedesktop = idle.DBusFreedesktopIdleMonitor()
-        freedesktop.last_idle_time = 0
-        with patch.object(freedesktop, "_get_idle_sec_fail", side_effect=FakeError("fail")):
-            assert freedesktop.get_idle_sec() == 0
+        with pytest.raises(dbus_idle.DBusIdleError):
+            dbus_idle.DBusFreedesktopIdleMonitor()
 
-        gnome = idle.DBusGnomeIdleMonitor()
-        gnome.last_idle_time = 0
-        with patch.object(gnome, "_get_idle_sec_fail", side_effect=FakeError("fail")):
-            assert gnome.get_idle_sec() == 0
+    freedesktop = dbus_idle.DBusFreedesktopIdleMonitor.__new__(dbus_idle.DBusFreedesktopIdleMonitor)
+    freedesktop.last_idle_time = 3
+    with patch.object(
+        freedesktop,
+        "_get_idle_sec_fail",
+        side_effect=dbus_idle.DBusIdleError("fail"),
+    ):
+        assert freedesktop.get_idle_sec() == 3
 
 
-@pytest.mark.skipif(sys.platform in ("win32", "darwin"), reason="IdleMonitor GObject")
-def test_idle_monitor_states_and_poll() -> None:
+@pytest.mark.skipif(sys.platform in ("win32", "darwin"), reason="LinuxIdleMonitor")
+def test_linux_idle_monitor() -> None:
     import utils.idle as idle
 
     backend = MagicMock()
-    backend.is_extended_away.return_value = False
-    backend.get_idle_sec.return_value = 5
-    backend.set_extended_away = MagicMock()
+    backend.get_idle_sec.return_value = 42
 
-    with (
-        patch.object(idle.IdleMonitor, "_get_idle_monitor", return_value=backend),
-        patch.object(idle.GLib, "timeout_add_seconds"),
-    ):
-        monitor = idle.IdleMonitor()
+    with patch.object(idle.LinuxIdleMonitor, "_get_idle_monitor", return_value=backend):
+        monitor = idle.LinuxIdleMonitor()
     assert monitor.is_available()
-    assert monitor.is_awake()
-    assert not monitor.is_away()
-    assert not monitor.is_xa()
-    assert not monitor.is_unknown()
+    assert monitor.get_idle_sec() == 42
 
-    backend.get_idle_sec.return_value = 10
-    monitor._poll()
-    assert monitor.is_awake()
-
-    backend.get_idle_sec.return_value = 70
-    monitor._poll()
-    assert monitor.is_away()
-
-    backend.get_idle_sec.return_value = 130
-    monitor._poll()
-    assert monitor.is_xa()
-
-    backend.is_extended_away.return_value = True
-    monitor._poll()
-    assert monitor.state == IdleState.XA
-
-    monitor.set_extended_away(True)
-    backend.set_extended_away.assert_called_with(True)
-
-    monitor._idle_monitor = None
-    monitor.set_extended_away(False)
-
-    monitor._idle_monitor = None
+    with patch.object(idle.LinuxIdleMonitor, "_get_idle_monitor", return_value=None):
+        monitor = idle.LinuxIdleMonitor()
+    assert not monitor.is_available()
     assert monitor.get_idle_sec() == 0
-    assert monitor.state == IdleState.UNKNOWN
 
 
 @pytest.mark.skipif(sys.platform in ("win32", "darwin"), reason="_get_idle_monitor")
 def test_get_idle_monitor_fallback_chain(monkeypatch: pytest.MonkeyPatch) -> None:
     import utils.idle as idle
+    from utils.dbus_idle import DBusIdleError
 
-    class FakeError(Exception):
-        pass
-
-    fake_glib = MagicMock()
-    fake_glib.Error = FakeError
     monkeypatch.setenv("XDG_SESSION_TYPE", "x11")
 
     with (
-        patch.object(idle, "GLib", fake_glib),
-        patch.object(idle, "DBusFreedesktopIdleMonitor", side_effect=FakeError("no")),
-        patch.object(idle, "DBusGnomeIdleMonitor", side_effect=FakeError("no")),
-        patch.object(idle, "DBusMateIdleMonitor", side_effect=FakeError("no")),
+        patch.object(idle, "DBusFreedesktopIdleMonitor", side_effect=DBusIdleError("no")),
+        patch.object(idle, "DBusGnomeIdleMonitor", side_effect=DBusIdleError("no")),
+        patch.object(idle, "DBusMateIdleMonitor", side_effect=DBusIdleError("no")),
         patch.object(idle, "XssIdleMonitor", side_effect=OSError("no xss")),
     ):
-        assert idle.IdleMonitor._get_idle_monitor() is None
+        assert idle.LinuxIdleMonitor._get_idle_monitor() is None
 
     monkeypatch.setenv("XDG_SESSION_TYPE", "wayland")
     with (
-        patch.object(idle, "GLib", fake_glib),
-        patch.object(idle, "DBusFreedesktopIdleMonitor", side_effect=FakeError("no")),
-        patch.object(idle, "DBusGnomeIdleMonitor", side_effect=FakeError("no")),
-        patch.object(idle, "DBusMateIdleMonitor", side_effect=FakeError("no")),
+        patch.object(idle, "DBusFreedesktopIdleMonitor", side_effect=DBusIdleError("no")),
+        patch.object(idle, "DBusGnomeIdleMonitor", side_effect=DBusIdleError("no")),
+        patch.object(idle, "DBusMateIdleMonitor", side_effect=DBusIdleError("no")),
     ):
-        assert idle.IdleMonitor._get_idle_monitor() is None
+        assert idle.LinuxIdleMonitor._get_idle_monitor() is None
 
 
 @pytest.mark.skipif(sys.platform in ("win32", "darwin"), reason="XssIdleMonitor")
@@ -366,17 +292,13 @@ def test_desktop_idle_monitor_win32_branch() -> None:
         assert monitor.get_idle_sec() == 7
 
 
-@pytest.mark.skipif(sys.platform in ("win32", "darwin"), reason="IdleMonitor sin backend")
-def test_idle_monitor_unavailable_skips_poll() -> None:
+@pytest.mark.skipif(sys.platform in ("win32", "darwin"), reason="LinuxIdleMonitor sin backend")
+def test_linux_idle_monitor_unavailable() -> None:
     import utils.idle as idle
 
-    with (
-        patch.object(idle.IdleMonitor, "_get_idle_monitor", return_value=None),
-        patch.object(idle.GLib, "timeout_add_seconds") as mock_timer,
-    ):
-        monitor = idle.IdleMonitor()
+    with patch.object(idle.LinuxIdleMonitor, "_get_idle_monitor", return_value=None):
+        monitor = idle.LinuxIdleMonitor()
         assert not monitor.is_available()
-        mock_timer.assert_not_called()
 
 
 @pytest.mark.skipif(sys.platform in ("win32", "darwin"), reason="XssIdleMonitor errores")
@@ -452,22 +374,10 @@ def test_xss_idle_monitor_init_failures() -> None:
 
 @pytest.mark.skipif(sys.platform in ("win32", "darwin"), reason="DBusMateIdleMonitor")
 def test_mate_idle_monitor_linux() -> None:
-    import utils.idle as idle
+    from utils import dbus_idle
 
-    mock_proxy = MagicMock()
-    mock_proxy.call_sync.return_value = (5000,)
-
-    class FakeError(Exception):
-        pass
-
-    fake_glib = MagicMock()
-    fake_glib.Error = FakeError
-
-    with (
-        patch.object(idle, "GLib", fake_glib),
-        patch.object(idle.Gio.DBusProxy, "new_for_bus_sync", return_value=mock_proxy),
-    ):
-        monitor = idle.DBusMateIdleMonitor()
+    with patch.object(dbus_idle, "get_session_idle_ms", return_value=5000):
+        monitor = dbus_idle.DBusMateIdleMonitor()
         assert monitor.get_idle_sec() == 5
         monitor.set_extended_away(True)
         assert monitor.is_extended_away() is True
@@ -475,77 +385,52 @@ def test_mate_idle_monitor_linux() -> None:
 
 @pytest.mark.skipif(sys.platform in ("win32", "darwin"), reason="DBusMateIdleMonitor error")
 def test_mate_idle_monitor_dbus_error() -> None:
-    import utils.idle as idle
+    from utils import dbus_idle
 
-    mock_proxy = MagicMock()
-    mock_proxy.call_sync.return_value = (5000,)
-
-    class FakeError(Exception):
-        pass
-
-    fake_glib = MagicMock()
-    fake_glib.Error = FakeError
-
-    with (
-        patch.object(idle, "GLib", fake_glib),
-        patch.object(idle.Gio.DBusProxy, "new_for_bus_sync", return_value=mock_proxy),
+    with patch.object(
+        dbus_idle,
+        "get_session_idle_ms",
+        side_effect=dbus_idle.DBusIdleError("fail"),
     ):
-        monitor = idle.DBusMateIdleMonitor()
-        monitor.last_idle_time = 3
-        with patch.object(monitor, "_get_idle_sec_fail", side_effect=FakeError("fail")):
-            assert monitor.get_idle_sec() == 3
+        with pytest.raises(dbus_idle.DBusIdleError):
+            dbus_idle.DBusMateIdleMonitor()
+
+    monitor = dbus_idle.DBusMateIdleMonitor.__new__(dbus_idle.DBusMateIdleMonitor)
+    monitor.last_idle_time = 3
+    with patch.object(monitor, "_get_idle_sec_fail", side_effect=dbus_idle.DBusIdleError("fail")):
+        assert monitor.get_idle_sec() == 3
 
 
 @pytest.mark.skipif(sys.platform in ("win32", "darwin"), reason="_get_idle_monitor éxito")
-def test_get_idle_monitor_success_paths() -> None:
+def test_get_idle_monitor_success_paths(monkeypatch: pytest.MonkeyPatch) -> None:
     import utils.idle as idle
+    from utils.dbus_idle import DBusIdleError
 
-    class FakeError(Exception):
-        pass
-
-    fake_glib = MagicMock()
-    fake_glib.Error = FakeError
-
-    with (
-        patch.object(idle, "GLib", fake_glib),
-        patch.object(idle, "DBusFreedesktopIdleMonitor", return_value=MagicMock()),
-    ):
-        backend = idle.IdleMonitor._get_idle_monitor()
+    with patch.object(idle, "DBusFreedesktopIdleMonitor", return_value=MagicMock()):
+        backend = idle.LinuxIdleMonitor._get_idle_monitor()
         assert backend is not None
 
     with (
-        patch.object(idle, "GLib", fake_glib),
-        patch.object(idle, "DBusFreedesktopIdleMonitor", side_effect=FakeError("no")),
+        patch.object(idle, "DBusFreedesktopIdleMonitor", side_effect=DBusIdleError("no")),
         patch.object(idle, "DBusGnomeIdleMonitor", return_value=MagicMock()),
     ):
-        backend = idle.IdleMonitor._get_idle_monitor()
+        backend = idle.LinuxIdleMonitor._get_idle_monitor()
         assert backend is not None
 
     with (
-        patch.object(idle, "GLib", fake_glib),
-        patch.object(idle, "DBusFreedesktopIdleMonitor", side_effect=FakeError("no")),
-        patch.object(idle, "DBusGnomeIdleMonitor", side_effect=FakeError("no")),
+        patch.object(idle, "DBusFreedesktopIdleMonitor", side_effect=DBusIdleError("no")),
+        patch.object(idle, "DBusGnomeIdleMonitor", side_effect=DBusIdleError("no")),
         patch.object(idle, "DBusMateIdleMonitor", return_value=MagicMock()),
     ):
-        backend = idle.IdleMonitor._get_idle_monitor()
+        backend = idle.LinuxIdleMonitor._get_idle_monitor()
         assert backend is not None
 
-
-@pytest.mark.skipif(sys.platform in ("win32", "darwin"), reason="IdleMonitor _set_state")
-def test_idle_monitor_set_state_emits() -> None:
-    import utils.idle as idle
-
-    backend = MagicMock()
-    backend.is_extended_away.return_value = False
-    backend.get_idle_sec.return_value = 0
-
+    monkeypatch.setenv("XDG_SESSION_TYPE", "x11")
     with (
-        patch.object(idle.IdleMonitor, "_get_idle_monitor", return_value=backend),
-        patch.object(idle.GLib, "timeout_add_seconds"),
-        patch.object(idle.IdleMonitor, "emit") as mock_emit,
+        patch.object(idle, "DBusFreedesktopIdleMonitor", side_effect=DBusIdleError("no")),
+        patch.object(idle, "DBusGnomeIdleMonitor", side_effect=DBusIdleError("no")),
+        patch.object(idle, "DBusMateIdleMonitor", side_effect=DBusIdleError("no")),
+        patch.object(idle, "XssIdleMonitor", return_value=MagicMock()),
     ):
-        monitor = idle.IdleMonitor()
-        monitor._set_state(IdleState.AWAY)
-        mock_emit.assert_called_with("state-changed")
-        monitor._set_state(IdleState.AWAY)
-        assert mock_emit.call_count == 1
+        backend = idle.LinuxIdleMonitor._get_idle_monitor()
+        assert backend is not None

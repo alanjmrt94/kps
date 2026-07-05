@@ -56,33 +56,42 @@ def test_move_script_path_macos() -> None:
 
 
 def test_run_move_success() -> None:
-    ok = MagicMock(returncode=0, stderr="")
     with (
-        patch("utils.runner.subprocess.run", return_value=ok),
-        patch("utils.runner.venv_python", return_value=MagicMock()),
-        patch("utils.runner.move_script_path", return_value=MagicMock()),
+        patch("utils.runner.time.sleep"),
+        patch("utils.move.move_once") as mock_move,
+        patch.object(sys, "platform", "linux"),
+        patch.object(runner.os, "name", OsType.UNIX),
     ):
         run_move()
+    mock_move.assert_called_once()
 
 
 def test_run_move_failure() -> None:
-    fail = MagicMock(returncode=1, stderr="error move")
     with (
-        patch("utils.runner.subprocess.run", return_value=fail),
-        patch("utils.runner.venv_python", return_value=MagicMock()),
-        patch("utils.runner.move_script_path", return_value=MagicMock()),
+        patch("utils.move.move_once", side_effect=OSError("uinput fail")),
+        patch.object(sys, "platform", "linux"),
+        patch.object(runner.os, "name", OsType.UNIX),
     ):
         run_move()
 
 
 def test_run_move_failure_no_stderr() -> None:
-    fail = MagicMock(returncode=1, stderr="")
     with (
-        patch("utils.runner.subprocess.run", return_value=fail),
-        patch("utils.runner.venv_python", return_value=MagicMock()),
-        patch("utils.runner.move_script_path", return_value=MagicMock()),
+        patch("utils.move_win.main", return_value=1),
+        patch.object(runner.os, "name", OsType.WINDOWS),
     ):
         run_move()
+
+
+def test_run_move_bundled_linux() -> None:
+    with (
+        patch("utils.runner.time.sleep"),
+        patch("utils.move.move_once") as mock_move,
+        patch.object(sys, "platform", "linux"),
+        patch.object(runner.os, "name", OsType.UNIX),
+    ):
+        run_move()
+    mock_move.assert_called_once()
 
 
 def test_interruptible_sleep_completes() -> None:

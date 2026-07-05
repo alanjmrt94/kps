@@ -12,10 +12,8 @@ from utils.const import OsType, VENV_DIR_NAME
 
 # Verificación de imports tras instalar (por plataforma)
 _VERIFY_LINUX = """
-import gi
-gi.require_version("Gio", "2.0")
-from gi.repository import Gio, GLib, GObject
-import uinput
+from utils.dbus_idle import DBusIdleError, get_session_idle_ms
+from utils.uinput_device import UInputDevice, REL_X
 """
 
 _VERIFY_WINDOWS = """
@@ -28,15 +26,21 @@ from Quartz import CGEventSourceSecondsSinceLastEventType
 """
 
 _UINPUT_DEVICE_TEST = """
-import uinput
-events = (uinput.REL_X, uinput.REL_Y, uinput.BTN_LEFT, uinput.BTN_RIGHT)
-with uinput.Device(events) as device:
-    device.emit(uinput.REL_X, 1)
+from utils.uinput_device import REL_X, UInputDevice
+with UInputDevice((REL_X,)) as device:
+    device.emit(REL_X, 1)
 """
 
 
+def is_bundled() -> bool:
+    """True si kps corre como binario empaquetado (PyInstaller / AppImage)."""
+    return bool(getattr(sys, "frozen", False))
+
+
 def project_root() -> Path:
-    """Ruta raíz del proyecto kps."""
+    """Ruta raíz del proyecto kps (o del bundle empaquetado)."""
+    if is_bundled():
+        return Path(sys.executable).resolve().parent
     return Path(__file__).resolve().parent.parent
 
 
@@ -51,7 +55,9 @@ def venv_dir() -> Path:
 
 
 def venv_python() -> Path:
-    """Ejecutable python dentro del venv según la plataforma."""
+    """Ejecutable python dentro del venv (o el binario empaquetado)."""
+    if is_bundled():
+        return Path(sys.executable).resolve()
     root = venv_dir()
     if sys.platform == "win32":
         return root / "Scripts" / "python.exe"
@@ -114,7 +120,7 @@ def run_platform_install() -> None:
 
 
 def venv_has_system_site_packages() -> bool:
-    """Comprueba si .venv fue creado con --system-site-packages."""
+    """Comprueba si .venv fue creado con --system-site-packages (legacy)."""
     cfg = venv_dir() / "pyvenv.cfg"
     if not cfg.is_file():
         return False
@@ -122,21 +128,18 @@ def venv_has_system_site_packages() -> bool:
 
 
 def ensure_venv() -> Path:
-    """Crea .venv una sola vez si no existe (Linux: --system-site-packages)."""
+    """Crea .venv una sola vez si no existe."""
     path = venv_dir()
     if path.is_dir():
-        if detect_os() == "linux" and not venv_has_system_site_packages():
-            print("[kps] Recreando venv (faltaba --system-site-packages)...")
+        if detect_os() == "linux" and venv_has_system_site_packages():
+            print("[kps] Recreando venv (ya no se usa --system-site-packages)...")
             shutil.rmtree(path)
         else:
             print(f"[kps] Entorno virtual existente: {path}")
             return path
 
     print(f"[kps] Creando entorno virtual en {path}...")
-    cmd = [sys.executable, "-m", "venv", str(path)]
-    if detect_os() == "linux":
-        cmd.insert(3, "--system-site-packages")
-    _run(cmd)
+    _run([sys.executable, "-m", "venv", str(path)])
     return path
 
 
@@ -173,15 +176,17 @@ def _import_check_result() -> subprocess.CompletedProcess[str]:
 
 
 def _run_import_check() -> bool:
-    """Comprueba imports en el venv sin imprimir mensajes."""
-    if not venv_python().is_file():
+    """Comprueba imports en el venv o binario empaquetado sin imprimir mensajes."""
+    py = venv_python()
+    if not is_bundled() and not py.is_file():
         return False
     return _import_check_result().returncode == 0
 
 
 def verify_imports() -> bool:
     """Comprueba que los imports principales funcionan en el venv."""
-    if not venv_python().is_file():
+    py = venv_python()
+    if not is_bundled() and not py.is_file():
         print("[kps] ERROR: no existe el intérprete del venv. Ejecuta la instalación primero.")
         return False
 
@@ -278,7 +283,10 @@ def can_access_uinput() -> bool:
 
 
 def verify_runtime() -> None:
-    """Comprueba venv, imports (silencioso) y uinput antes de ejecutar kps."""
+    """Comprueba venv o bundle, imports (silencioso) y uinput antes de ejecutar kps."""
+    if is_bundled():
+        verify_bundled_runtime()
+        return
     if not venv_dir().is_dir():
         raise RuntimeError(
             "No hay entorno virtual (.venv). Ejecuta ./scripts/install.sh o ./run"
@@ -304,6 +312,8 @@ def verify_setup() -> None:
 
 def ensure_venv_runtime() -> None:
     """Re-ejecuta kps con el Python del venv si aún no lo usa."""
+    if is_bundled():
+        return
     vpy = venv_python()
     if not vpy.is_file():
         return
@@ -313,8 +323,27 @@ def ensure_venv_runtime() -> None:
     os.execv(str(vpy), [str(vpy), *sys.argv])
 
 
+def verify_bundled_runtime() -> None:
+    """Comprueba imports y uinput cuando kps corre empaquetado (AppImage/.exe)."""
+    if not _run_import_check():
+        raise RuntimeError("Los imports no están disponibles en el binario empaquetado.")
+    if detect_os() == "linux":
+        issue = describe_uinput_issue()
+        if issue:
+            raise RuntimeError(issue)
+        if not verify_uinput_device(quiet=True):
+            raise RuntimeError(
+                "No se pudo usar uinput sin sudo. "
+                "Ejecuta ./scripts/install.sh para permisos de /dev/uinput."
+            )
+    print("[kps] Entorno listo (empaquetado).")
+
+
 def setup_environment() -> None:
     """Instala dependencias si faltan, verifica el entorno y activa el venv."""
+    if is_bundled():
+        verify_bundled_runtime()
+        return
     ensure_venv_runtime()
     if not venv_dir().is_dir() or not _run_import_check():
         autoinstall()

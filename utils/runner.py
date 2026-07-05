@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 import os
-import subprocess
 import sys
 import time
 from datetime import datetime
@@ -17,7 +16,7 @@ from utils.const import (
     MOVE_SCRIPT_WINDOWS,
     OsType,
 )
-from utils.install import project_root, venv_python
+from utils.install import project_root
 from utils.keyboard_pulse import pulse_shift
 from utils.shutdown import ShutdownController
 
@@ -39,21 +38,33 @@ def move_script_path() -> Path:
 
 
 def run_move() -> None:
-    """Ejecuta el script de movimiento del ratón según la plataforma."""
-    move_py = move_script_path()
-    cmd = [str(venv_python()), str(move_py)]
-    log.debug("Ejecutando: %s", " ".join(cmd))
-    result = subprocess.run(
-        cmd,
-        cwd=project_root(),
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode != 0:
+    """Mueve el ratón en el mismo proceso (evita fallos de import en subprocess)."""
+    _run_move_inprocess()
+
+
+def _run_move_inprocess() -> None:
+    """Mueve el ratón en el mismo proceso."""
+    try:
+        if os.name == OsType.WINDOWS:
+            from utils.move_win import main as move_main  # pylint: disable=import-outside-toplevel
+
+            rc = move_main()
+        elif sys.platform == "darwin":
+            from utils.move_mac import main as move_main  # pylint: disable=import-outside-toplevel
+
+            rc = move_main()
+        else:
+            from utils.move import move_once  # pylint: disable=import-outside-toplevel
+
+            time.sleep(1)
+            move_once()
+            rc = 0
+    except (OSError, PermissionError) as error:
+        log.error("%s — no se pudo mover el ratón: %s", now_timestamp(), error)
+        return
+
+    if rc != 0:
         log.error("%s — no se pudo mover el ratón.", now_timestamp())
-        if result.stderr:
-            log.error(result.stderr.strip())
 
 
 def interruptible_sleep(seconds: float, shutdown: ShutdownController) -> bool:

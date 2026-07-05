@@ -29,6 +29,23 @@ def test_spawn_daemon_skips_foreground_child() -> None:
     daemon.spawn_daemon(["kps.py", "--foreground", "-t", "5"])
 
 
+def test_spawn_daemon_bundled() -> None:
+    mock_proc = MagicMock(pid=5150)
+    with (
+        patch.object(daemon, "is_bundled", return_value=True),
+        patch.object(daemon.subprocess, "Popen", return_value=mock_proc) as mock_popen,
+        patch.object(daemon.sys, "platform", "linux"),
+        patch.object(daemon.sys, "executable", "/opt/kps.AppImage"),
+        patch.object(daemon.sys, "exit", side_effect=SystemExit),
+    ):
+        with pytest.raises(SystemExit):
+            daemon.spawn_daemon(["kps", "-d", "-t", "5"])
+    cmd = mock_popen.call_args.args[0]
+    assert cmd[0] == "/opt/kps.AppImage"
+    assert "--foreground" in cmd
+    assert "kps.py" not in cmd
+
+
 def test_spawn_daemon_unix() -> None:
     mock_proc = MagicMock(pid=4242)
     with (

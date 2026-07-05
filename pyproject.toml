@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kps"
-version = "1.7.2"
+version = "2.0.0"
 description = "Evita inactividad moviendo el cursor cuando el usuario está ausente"
 readme = "README.md"
 license = { file = "LICENSE" }

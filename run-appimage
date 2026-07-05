@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Ejecuta kps desde el AppImage generado en dist/ (sin .venv ni pip).
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DIST="${ROOT}/dist"
+
+die() {
+    printf '[kps] ERROR: %s\n' "$*" >&2
+    exit 1
+}
+
+find_appimage() {
+    local arch img
+    arch="$(uname -m)"
+    case "${arch}" in
+        x86_64 | amd64) img="${DIST}/kps-x86_64.AppImage" ;;
+        aarch64 | arm64) img="${DIST}/kps-aarch64.AppImage" ;;
+        *) img="" ;;
+    esac
+
+    if [[ -n "${img}" && -x "${img}" ]]; then
+        echo "${img}"
+        return
+    fi
+
+    local fallback
+    fallback="$(find "${DIST}" -maxdepth 1 -name 'kps-*.AppImage' -type f -executable 2>/dev/null | head -1)"
+    if [[ -n "${fallback}" ]]; then
+        echo "${fallback}"
+        return
+    fi
+
+    die "No hay AppImage en dist/. Genera uno con: ./scripts/build_appimage.sh"
+}
+
+APPIMAGE="$(find_appimage)"
+exec "${APPIMAGE}" "$@"

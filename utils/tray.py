@@ -13,13 +13,18 @@ def run_with_tray(title: str, on_quit: Callable[[], None], run_main: Callable[[]
     """Muestra icono en bandeja y ejecuta ``run_main`` en un hilo."""
     try:
         import pystray  # pylint: disable=import-outside-toplevel
-        from PIL import Image  # pylint: disable=import-outside-toplevel
     except ImportError as error:
         raise RuntimeError(
             "Modo tray requiere dependencias GUI: pip install \"kps[gui]\""
         ) from error
 
-    image = Image.new("RGB", (64, 64), color=(70, 130, 180))
+    from utils.icons import load_tray_image  # pylint: disable=import-outside-toplevel
+
+    image = load_tray_image()
+    if image is None:
+        from PIL import Image  # pylint: disable=import-outside-toplevel
+
+        image = Image.new("RGB", (64, 64), color=(70, 130, 180))
 
     def _quit(_icon: object, _item: object) -> None:
         on_quit()

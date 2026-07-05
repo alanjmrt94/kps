@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 import runpy
-import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -40,17 +39,11 @@ def test_move_win_and_mac_main() -> None:
 
 
 def test_move_once_with_uinput_mock() -> None:
-    mock_uinput = MagicMock()
     device = MagicMock()
     device.__enter__ = MagicMock(return_value=device)
     device.__exit__ = MagicMock(return_value=False)
-    mock_uinput.Device.return_value = device
-    mock_uinput.REL_X = 1
-    mock_uinput.REL_Y = 2
-    mock_uinput.BTN_LEFT = 3
-    mock_uinput.BTN_RIGHT = 4
     with (
-        patch.dict(sys.modules, {"uinput": mock_uinput}),
+        patch("utils.move.UInputDevice", return_value=device),
         patch.object(move_linux.time, "sleep"),
     ):
         move_linux.move_once()
@@ -88,14 +81,11 @@ def test_move_entrypoints_main() -> None:
         with pytest.raises(SystemExit) as exc:
             runpy.run_path(str(mac_path), run_name="__main__")
         assert exc.value.code == 1
-    mock_uinput = MagicMock()
     device = MagicMock()
     device.__enter__ = MagicMock(return_value=device)
     device.__exit__ = MagicMock(return_value=False)
-    mock_uinput.Device.return_value = device
-    mock_uinput.REL_X = 0
     with (
-        patch.dict(sys.modules, {"uinput": mock_uinput}),
+        patch("utils.move.UInputDevice", return_value=device),
         patch.object(move_linux.time, "sleep"),
     ):
         with pytest.raises(SystemExit) as exc:

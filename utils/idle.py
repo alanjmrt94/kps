@@ -28,8 +28,6 @@ import sys
 import time
 from typing import TYPE_CHECKING, Protocol, cast
 
-from utils.const import IdleState
-
 log = logging.getLogger('kps.u.idle')
 
 
@@ -133,157 +131,13 @@ class DesktopIdleMonitor:
 
 
 if sys.platform not in ('win32', 'darwin'):
-    import gi
-
-    gi.require_version("Gio", "2.0")
-    from gi.repository import Gio, GLib, GObject
-
     from utils import app
-
-    class DBusFreedesktopIdleMonitor:
-
-        def __init__(self):
-            self.last_idle_time = 0
-            self._extended_away = False
-
-            log.debug('Connecting to D-Bus')
-            self.dbus_proxy = Gio.DBusProxy.new_for_bus_sync(
-                Gio.BusType.SESSION,
-                Gio.DBusProxyFlags.NONE,
-                None,
-                'org.freedesktop.ScreenSaver',
-                '/org/freedesktop/ScreenSaver',
-                'org.freedesktop.ScreenSaver',
-                None
-            )
-            log.debug('D-Bus connected')
-
-            # Only the following call will trigger exceptions if the D-Bus
-            # interface/method/... does not exist. Using the failing method
-            # for class init to allow other idle monitors to be used on failure.
-            self._get_idle_sec_fail()
-            log.debug('D-Bus call test successful')
-
-        def _get_idle_sec_fail(self):
-            (idle_time,) = self.dbus_proxy.call_sync(
-                'GetSessionIdleTime',
-                None,
-                Gio.DBusCallFlags.NO_AUTO_START,
-                -1,
-                None
-            )
-            return idle_time // 1000
-
-        def get_idle_sec(self):
-            try:
-                self.last_idle_time = self._get_idle_sec_fail()
-            except GLib.Error as error:
-                log.warning(
-                    'org.freedesktop.ScreenSaver.GetSessionIdleTime() failed: %s',
-                    error)
-
-            return self.last_idle_time
-
-        def set_extended_away(self, state):
-            self._extended_away = state
-
-        def is_extended_away(self):
-            return self._extended_away
-
-    class DBusMateIdleMonitor:
-
-        def __init__(self):
-            self.last_idle_time = 0
-            self._extended_away = False
-
-            log.debug('Connecting to D-Bus (MATE ScreenSaver)')
-            self.dbus_proxy = Gio.DBusProxy.new_for_bus_sync(
-                Gio.BusType.SESSION,
-                Gio.DBusProxyFlags.NONE,
-                None,
-                'org.mate.ScreenSaver',
-                '/org/mate/ScreenSaver',
-                'org.mate.ScreenSaver',
-                None
-            )
-            self._get_idle_sec_fail()
-            log.debug('D-Bus MATE call test successful')
-
-        def _get_idle_sec_fail(self):
-            (idle_time,) = self.dbus_proxy.call_sync(
-                'GetSessionIdleTime',
-                None,
-                Gio.DBusCallFlags.NO_AUTO_START,
-                -1,
-                None
-            )
-            return idle_time // 1000
-
-        def get_idle_sec(self):
-            try:
-                self.last_idle_time = self._get_idle_sec_fail()
-            except GLib.Error as error:
-                log.warning(
-                    'org.mate.ScreenSaver.GetSessionIdleTime() failed: %s',
-                    error)
-
-            return self.last_idle_time
-
-        def set_extended_away(self, state):
-            self._extended_away = state
-
-        def is_extended_away(self):
-            return self._extended_away
-
-    class DBusGnomeIdleMonitor:
-
-        def __init__(self):
-            self.last_idle_time = 0
-            self._extended_away = False
-
-            log.debug('Connecting to D-Bus')
-            self.dbus_gnome_proxy = Gio.DBusProxy.new_for_bus_sync(
-                Gio.BusType.SESSION,
-                Gio.DBusProxyFlags.NONE,
-                None,
-                'org.gnome.Mutter.IdleMonitor',
-                '/org/gnome/Mutter/IdleMonitor/Core',
-                'org.gnome.Mutter.IdleMonitor',
-                None
-            )
-            log.debug('D-Bus connected')
-
-            # Only the following call will trigger exceptions if the D-Bus
-            # interface/method/... does not exist. Using the failing method
-            # for class init to allow other idle monitors to be used on failure.
-            self._get_idle_sec_fail()
-            log.debug('D-Bus call test successful')
-
-        def _get_idle_sec_fail(self):
-            (idle_time,) = self.dbus_gnome_proxy.call_sync(
-                'GetIdletime',
-                None,
-                Gio.DBusCallFlags.NO_AUTO_START,
-                -1,
-                None
-            )
-            return int(idle_time / 1000)
-
-        def get_idle_sec(self):
-            try:
-                self.last_idle_time = self._get_idle_sec_fail()
-            except GLib.Error as error:
-                log.warning(
-                    'org.gnome.Mutter.IdleMonitor.GetIdletime() failed: %s',
-                    error)
-
-            return self.last_idle_time
-
-        def set_extended_away(self, state):
-            self._extended_away = state
-
-        def is_extended_away(self):
-            return self._extended_away
+    from utils.dbus_idle import (
+        DBusFreedesktopIdleMonitor,
+        DBusGnomeIdleMonitor,
+        DBusIdleError,
+        DBusMateIdleMonitor,
+    )
 
     class XssIdleMonitor:
         def __init__(self):
@@ -354,54 +208,19 @@ if sys.platform not in ('win32', 'darwin'):
         def is_extended_away(self):
             return False
 
-    class IdleMonitor(GObject.GObject):
+    class LinuxIdleMonitor:
+        """Monitor idle en Linux (D-Bus o XScreenSaver); sin GObject."""
 
-        __gsignals__ = {
-            'state-changed': (
-                GObject.SignalFlags.RUN_LAST | GObject.SignalFlags.ACTION,
-                None,  # return value
-                ()  # arguments
-            )}
-
-        def __init__(self):
-            GObject.GObject.__init__(self)
-            self.set_interval()
-            self._state = IdleState.AWAKE
+        def __init__(self) -> None:
             self._idle_monitor = self._get_idle_monitor()
 
-            if self.is_available():
-                GLib.timeout_add_seconds(1, self._poll)
-
-        def set_interval(self, away_interval=60, xa_interval=120):
-            log.debug('Set interval: away: %s, xa: %s',
-                     away_interval, xa_interval)
-            self._away_interval = away_interval
-            self._xa_interval = xa_interval
-
-        def set_extended_away(self, state):
-            if self._idle_monitor is not None:
-                self._idle_monitor.set_extended_away(state)
-
-        def is_available(self):
+        def is_available(self) -> bool:
             return self._idle_monitor is not None
 
-        @property
-        def state(self):
-            if not self.is_available():
-                return IdleState.UNKNOWN
-            return self._state
-
-        def is_xa(self):
-            return self.state == IdleState.XA
-
-        def is_away(self):
-            return self.state == IdleState.AWAY
-
-        def is_awake(self):
-            return self.state == IdleState.AWAKE
-
-        def is_unknown(self):
-            return self.state == IdleState.UNKNOWN
+        def get_idle_sec(self) -> float | int:
+            if self._idle_monitor is None:
+                return 0
+            return self._idle_monitor.get_idle_sec()
 
         @staticmethod
         def _get_idle_monitor():
@@ -409,21 +228,21 @@ if sys.platform not in ('win32', 'darwin'):
                 monitor = DBusFreedesktopIdleMonitor()
                 log.info('Monitor idle: D-Bus (org.freedesktop.ScreenSaver)')
                 return monitor
-            except GLib.Error as error:
+            except DBusIdleError as error:
                 log.debug('D-Bus ScreenSaver no disponible: %s', error)
 
             try:
                 monitor = DBusGnomeIdleMonitor()
                 log.info('Monitor idle: D-Bus (org.gnome.Mutter.IdleMonitor)')
                 return monitor
-            except GLib.Error as error:
+            except DBusIdleError as error:
                 log.debug('D-Bus Mutter IdleMonitor no disponible: %s', error)
 
             try:
                 monitor = DBusMateIdleMonitor()
                 log.info('Monitor idle: D-Bus (org.mate.ScreenSaver)')
                 return monitor
-            except GLib.Error as error:
+            except DBusIdleError as error:
                 log.debug('D-Bus MATE ScreenSaver no disponible: %s', error)
 
             if app.is_wayland_session():
@@ -440,39 +259,6 @@ if sys.platform not in ('win32', 'darwin'):
                 log.debug('XScreenSaver no disponible: %s', error)
             return None
 
-        def get_idle_sec(self):
-            if self._idle_monitor is None:
-                return 0
-            return self._idle_monitor.get_idle_sec()
-
-        def _poll(self):
-            """
-            Check to see if we should change state
-            """
-            if self._idle_monitor.is_extended_away():
-                log.info('Extended Away: Screensaver or Locked Screen')
-                self._set_state(IdleState.XA)
-                return True
-
-            idle_time = self.get_idle_sec()
-
-            # xa is stronger than away so check for xa first
-            if idle_time > self._xa_interval:
-                self._set_state(IdleState.XA)
-            elif idle_time > self._away_interval:
-                self._set_state(IdleState.AWAY)
-            else:
-                self._set_state(IdleState.AWAKE)
-            return True
-
-        def _set_state(self, state):
-            if self._state == state:
-                return
-
-            self._state = state
-            log.info('State changed: %s', state)
-            self.emit('state-changed')
-
-    Monitor = cast("_MonitorApi", IdleMonitor())
+    Monitor = cast("_MonitorApi", LinuxIdleMonitor())
 else:
     Monitor = cast("_MonitorApi", DesktopIdleMonitor())

@@ -4,11 +4,11 @@ Scripts para preparar el entorno de ejecución en cada plataforma.
 
 ## Flujo común
 
-1. Comprobar / instalar dependencias del sistema (solo Linux y macOS si aplica)
-2. Crear `.venv` con `python3 -m venv --system-site-packages .venv` (Linux)
+1. Comprobar / instalar dependencias del sistema (Linux: mínimo apt)
+2. Crear `.venv` con `python3 -m venv .venv`
 3. Activar el entorno (`source .venv/bin/activate` o `activate.bat` en Windows)
 4. Actualizar `pip`, `wheel`, `setuptools`
-5. Instalar dependencias pip desde `requirements-*.txt` (Linux: solo python-uinput; GI vía apt)
+5. Instalar dependencias pip desde `requirements-*.txt`
 6. Verificar imports críticos
 
 ## Linux — `install.sh`
@@ -19,8 +19,10 @@ Scripts para preparar el entorno de ejecución en cada plataforma.
 ./scripts/install.sh
 ```
 
-- Instala paquetes apt **solo si no están presentes** (incl. `python3-gi`, `libgirepository-2.0-dev` para Ubuntu 24.04+)
-- Crea `.venv` con **`--system-site-packages`** (PyGObject/pycairo desde apt, no compila desde pip)
+- Instala **6 paquetes apt** solo si faltan: Python, `libglib2.0-bin` (gdbus), `libx11-6`, `libxss1`
+- **Sin** PyGObject, build-essential ni paquetes `-dev`
+- Idle Wayland/X11: D-Bus vía `gdbus`/`busctl`/`dbus-send` (`utils/dbus_idle.py`)
+- Movimiento: `/dev/uinput` vía ctypes (`utils/uinput_device.py`)
 - Carga módulo `uinput` y aplica regla udev desde `udev-rules/40-uinput.rules`
 - Añade el usuario al grupo `uinput` (requiere **cerrar sesión** para aplicar)
 
@@ -37,11 +39,12 @@ ls -l /dev/uinput   # crw-rw---- root uinput
 
 ### Escritorios y sesiones gráficas (Linux)
 
-kps **no usa el GTK del escritorio** (MATE GTK3, GNOME GTK4, etc.). Idle en Linux:
+kps **no usa GTK ni PyGObject**. Idle en Linux:
 
 1. D-Bus `org.freedesktop.ScreenSaver`
 2. D-Bus `org.gnome.Mutter.IdleMonitor` (GNOME/Wayland)
-3. XScreenSaver / `libXss` (solo sesión **X11**)
+3. D-Bus `org.mate.ScreenSaver`
+4. XScreenSaver / `libXss` (solo sesión **X11**)
 
 | Escritorio | Sesión | Backend habitual |
 |------------|--------|------------------|
@@ -50,38 +53,113 @@ kps **no usa el GTK del escritorio** (MATE GTK3, GNOME GTK4, etc.). Idle en Linu
 | MATE, Xfce, LXQt, Cinnamon | X11 | XScreenSaver |
 | KDE Plasma | Wayland | D-Bus freedesktop (si disponible) |
 
-En **Ubuntu MATE (X11)** suele funcionar vía XScreenSaver aunque no exista el D-Bus de GNOME. En **Wayland sin D-Bus idle**, el monitor puede fallar; preferir X11 o un compositor que exponga idle por D-Bus.
-
-Ver también la sección **Compatibilidad** en el [README](../README.md) del proyecto.
-
 **Lanzador:** `../run` (install + `kps.py`).
 
-## Windows — `install.bat`
+### Actualizar desde v1.7.x
+
+kps 2.0 elimina PyGObject y `python-uinput`. Recomendado:
+
+```bash
+./run --uninstall -y   # opcional: quita venv y paquetes apt de kps
+./run                  # reinstala (6 paquetes apt, venv nuevo)
+```
+
+Si no usas `--uninstall`, borra manualmente `.venv` antes de `./scripts/install.sh`.
+
+Desinstalar venv y paquetes apt de kps (con confirmación):
+
+```bash
+./run --uninstall
+# o
+./scripts/install.sh --uninstall
+```
+
+No elimina `python3` ni revierte la regla udev / grupo `uinput`. Opción `-y` para omitir confirmación.
+
+## Windows — `install.bat` + `build_windows.bat`
 
 **Requisitos:** Python 3 en PATH (`python`).
 
 ```bat
 scripts\install.bat
+scripts\build_windows.bat
 ```
 
-**Lanzador:** `..\run.bat`.
+Genera `dist\kps.exe` (PyInstaller, sin Python instalado).
 
-## macOS — `install-macos.sh`
+Spec: `scripts\kps.spec` (excluye `gi`).
+
+**Lanzador desarrollo:** `..\run.bat`.
+
+## macOS — `install-macos.sh` + `build_macos.sh`
 
 **Requisitos:** `python3` (Homebrew opcional si falta).
 
 ```bash
 ./scripts/install-macos.sh
+./scripts/build_macos.sh
 ```
 
-**Lanzador:** `../run-macos`.
+Genera `dist/kps.app` (PyInstaller). Puede requerir **Accesibilidad** en Ajustes → Privacidad.
+
+Spec: `scripts/kps-macos.spec`.
+
+**Lanzador desarrollo:** `../run-macos`.
+
+## Iconos (`assets/icons/`)
+
+Ver [`assets/icons/README.md`](../assets/icons/README.md) para la lista completa de archivos.
+
+```bash
+./scripts/generate_icons.sh      # desde assets/image_base.png (+ image_base.icns)
+./scripts/verify_icons.sh      # qué falta
+```
+
+| Archivo | Plataforma |
+|---------|------------|
+| `kps.ico` | Windows `.exe` |
+| `kps.icns` | macOS `.app` |
+| `linux/kps.png` | AppImage (256×256) |
+| `linux/hicolor/*/apps/kps.png` | Menú Linux |
+| `kps-tray.png` | Bandeja `--tray` |
+
+## Linux — AppImage — `build_appimage.sh` + `run-appimage`
+
+**Requisitos para compilar:** `.venv` (ejecuta `./scripts/install.sh` o `./run` una vez), `wget` o `curl`.
+
+```bash
+./scripts/build_appimage.sh
+```
+
+Genera `dist/kps-x86_64.AppImage` (o `kps-aarch64.AppImage` en ARM).
+
+Spec PyInstaller: `kps-linux.spec` (excluye `gi`; incluye `assets/icons/` si existen).
+
+### Cómo ejecutar el AppImage
+
+| Quién | Desde dónde | Comando |
+|-------|-------------|---------|
+| Desarrollador (repo clonado) | Raíz del proyecto | `./run-appimage -h` |
+| Usuario final | Cualquier carpeta | `./kps-x86_64.AppImage -h` o doble clic (terminal) |
+
+`run-appimage` busca `dist/kps-<arquitectura>.AppImage` y reenvía los argumentos a CLI de kps.
+
+### Qué incluye / qué no
+
+**Dentro del AppImage:** Python, pynput y módulos kps (sin pip ni `.venv`).
+
+**En el sistema host (una vez):**
+
+* `gdbus` / `busctl` / `dbus-send` — idle en Wayland (`libglib2.0-bin`)
+* `libX11` + `libXss` — idle en X11
+* `/dev/uinput` + grupo `uinput` — `./scripts/install.sh` (udev; no va dentro del AppImage)
+
+**Lanzador desarrollo con venv:** `../run`.
 
 ## Requirements
 
 | Archivo | Plataforma | Paquetes principales |
 |---------|------------|----------------------|
-| `requirements.txt` | Linux | python-uinput (PyGObject/pycairo vía apt + system-site-packages) |
-| `requirements-windows.txt` | Windows | pyautogui |
-| `requirements-macos.txt` | macOS | pyautogui, pyobjc-framework-Quartz |
-
-`python-uinput` se instala **solo desde PyPI** (decisión Fase 0.5).
+| `requirements.txt` | Linux | pynput (uinput/D-Bus internos) |
+| `requirements-windows.txt` | Windows | pyautogui, pynput |
+| `requirements-macos.txt` | macOS | pyautogui, pynput, pyobjc-framework-Quartz |

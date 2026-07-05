@@ -18,15 +18,14 @@ def test_pulse_pyautogui_success() -> None:
 
 
 def test_pulse_uinput_success() -> None:
-    mock_uinput = MagicMock()
     device = MagicMock()
     device.__enter__ = MagicMock(return_value=device)
     device.__exit__ = MagicMock(return_value=False)
-    mock_uinput.Device.return_value = device
-    mock_uinput.KEY_LEFTSHIFT = 42
-    with patch.dict("sys.modules", {"uinput": mock_uinput}):
-        with patch.object(keyboard_pulse.sys, "platform", "linux"):
-            assert keyboard_pulse.pulse_shift() is True
+    with (
+        patch("utils.uinput_device.UInputDevice", return_value=device),
+        patch.object(keyboard_pulse.sys, "platform", "linux"),
+    ):
+        assert keyboard_pulse.pulse_shift() is True
 
 
 def test_pulse_pyautogui_import_error() -> None:
@@ -43,16 +42,12 @@ def test_pulse_pyautogui_oserror() -> None:
             assert keyboard_pulse.pulse_shift() is False
 
 
-def test_pulse_uinput_import_error() -> None:
-    with patch("builtins.__import__", side_effect=ImportError("no uinput")):
-        with patch.object(keyboard_pulse.sys, "platform", "linux"):
-            assert keyboard_pulse.pulse_shift() is False
-
-
 def test_pulse_uinput_permission_error() -> None:
-    mock_uinput = MagicMock()
-    mock_uinput.Device.side_effect = PermissionError("udev")
-    mock_uinput.KEY_LEFTSHIFT = 42
-    with patch.dict("sys.modules", {"uinput": mock_uinput}):
-        with patch.object(keyboard_pulse.sys, "platform", "linux"):
-            assert keyboard_pulse.pulse_shift() is False
+    with (
+        patch(
+            "utils.uinput_device.UInputDevice",
+            side_effect=PermissionError("udev"),
+        ),
+        patch.object(keyboard_pulse.sys, "platform", "linux"),
+    ):
+        assert keyboard_pulse.pulse_shift() is False

@@ -30,15 +30,12 @@ def _pulse_pyautogui() -> bool:
 
 
 def _pulse_uinput() -> bool:
+    from utils.uinput_device import KEY_LEFTSHIFT, UInputDevice  # pylint: disable=import-outside-toplevel
+
     try:
-        import uinput  # pylint: disable=import-outside-toplevel,import-error
-    except ImportError:
-        log.warning("uinput no disponible para pulso de teclado.")
-        return False
-    try:
-        with uinput.Device((uinput.KEY_LEFTSHIFT,)) as device:
-            device.emit(uinput.KEY_LEFTSHIFT, 1)
-            device.emit(uinput.KEY_LEFTSHIFT, 0)
+        with UInputDevice((KEY_LEFTSHIFT,)) as device:
+            device.emit(KEY_LEFTSHIFT, 1)
+            device.emit(KEY_LEFTSHIFT, 0)
         return True
     except (OSError, PermissionError) as error:
         log.warning("Pulso uinput falló: %s", error)

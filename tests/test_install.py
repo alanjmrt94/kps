@@ -99,7 +99,7 @@ def test_venv_has_system_site_packages_true(tmp_path: Path) -> None:
 def test_ensure_venv_existing_compatible(tmp_path: Path) -> None:
     venv = tmp_path / ".venv"
     venv.mkdir()
-    (venv / "pyvenv.cfg").write_text("include-system-site-packages = true\n", encoding="utf-8")
+    (venv / "pyvenv.cfg").write_text("include-system-site-packages = false\n", encoding="utf-8")
     with (
         patch.object(install, "venv_dir", return_value=venv),
         patch.object(install, "detect_os", return_value="linux"),
@@ -107,10 +107,10 @@ def test_ensure_venv_existing_compatible(tmp_path: Path) -> None:
         assert install.ensure_venv() == venv
 
 
-def test_ensure_venv_recreate_without_system_packages(tmp_path: Path) -> None:
+def test_ensure_venv_recreate_legacy_system_packages(tmp_path: Path) -> None:
     venv = tmp_path / ".venv"
     venv.mkdir()
-    (venv / "pyvenv.cfg").write_text("include-system-site-packages = false\n", encoding="utf-8")
+    (venv / "pyvenv.cfg").write_text("include-system-site-packages = true\n", encoding="utf-8")
     with (
         patch.object(install, "venv_dir", return_value=venv),
         patch.object(install, "detect_os", return_value="linux"),
@@ -489,10 +489,64 @@ def test_ensure_venv_existing_returns_path(
 ) -> None:
     venv = tmp_path / ".venv"
     venv.mkdir()
-    (venv / "pyvenv.cfg").write_text("include-system-site-packages = true\n", encoding="utf-8")
+    (venv / "pyvenv.cfg").write_text("include-system-site-packages = false\n", encoding="utf-8")
     with (
         patch.object(install, "venv_dir", return_value=venv),
         patch.object(install, "detect_os", return_value="linux"),
     ):
         assert install.ensure_venv() == venv
     assert "existente" in capsys.readouterr().out
+
+
+def test_is_bundled() -> None:
+    with patch.object(install.sys, "frozen", True, create=True):
+        assert install.is_bundled() is True
+    with patch.object(install.sys, "frozen", False, create=True):
+        assert install.is_bundled() is False
+    if hasattr(install.sys, "frozen"):
+        delattr(install.sys, "frozen")
+    assert install.is_bundled() is False
+
+
+def test_project_root_bundled() -> None:
+    with (
+        patch.object(install, "is_bundled", return_value=True),
+        patch.object(install.sys, "executable", "/opt/kps/kps"),
+    ):
+        assert install.project_root() == Path("/opt/kps")
+
+
+def test_setup_environment_bundled() -> None:
+    with (
+        patch.object(install, "is_bundled", return_value=True),
+        patch.object(install, "verify_bundled_runtime") as mock_verify,
+        patch.object(install, "ensure_venv_runtime") as mock_venv,
+    ):
+        install.setup_environment()
+        mock_verify.assert_called_once()
+        mock_venv.assert_not_called()
+
+
+def test_verify_bundled_runtime_linux() -> None:
+    with (
+        patch.object(install, "_run_import_check", return_value=True),
+        patch.object(install, "detect_os", return_value="linux"),
+        patch.object(install, "describe_uinput_issue", return_value=""),
+        patch.object(install, "verify_uinput_device", return_value=True),
+    ):
+        install.verify_bundled_runtime()
+
+
+def test_verify_bundled_runtime_import_fail() -> None:
+    with patch.object(install, "_run_import_check", return_value=False):
+        with pytest.raises(RuntimeError, match="empaquetado"):
+            install.verify_bundled_runtime()
+
+
+def test_verify_runtime_delegates_to_bundled() -> None:
+    with (
+        patch.object(install, "is_bundled", return_value=True),
+        patch.object(install, "verify_bundled_runtime") as mock_bundled,
+    ):
+        install.verify_runtime()
+        mock_bundled.assert_called_once()

@@ -8,27 +8,23 @@ REQUIREMENTS="${SCRIPT_DIR}/requirements.txt"
 UDEV_RULES="${SCRIPT_DIR}/udev-rules/40-uinput.rules"
 VENV_DIR="${PROJECT_ROOT}/.venv"
 
+# Runtime mínimo: Python, cliente D-Bus y libs X11 (solo si se usa XScreenSaver).
 APT_PACKAGES=(
-    build-essential
-    pkg-config
     python3
-    python3-dev
     python3-pip
     python3-venv
-    python3-gi
-    python3-gi-cairo
-    gir1.2-gtk-4.0
-    gir1.2-glib-2.0
-    gir1.2-girepository-2.0-dev
-    gobject-introspection
-    libgirepository-2.0-dev
-    libgirepository1.0-dev
-    libcairo2
-    libcairo2-dev
-    libxt-dev
-    libx11-dev
-    libxss-dev
-    libudev-dev
+    libglib2.0-bin
+    libx11-6
+    libxss1
+)
+
+# No se desinstala python3 (suele ser dependencia del sistema).
+APT_PACKAGES_UNINSTALL=(
+    python3-pip
+    python3-venv
+    libglib2.0-bin
+    libx11-6
+    libxss1
 )
 
 log() {
@@ -64,23 +60,14 @@ is_pkg_installed() {
     dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -q "install ok installed"
 }
 
-is_pkg_satisfied() {
-    local pkg=$1
-
-    if is_pkg_installed "${pkg}"; then
-        return 0
-    fi
-
-    # En Ubuntu reciente GIO viene dentro del GIR de GLib
-    if [[ "${pkg}" == "gir1.2-gio-2.0" ]] && is_pkg_installed "gir1.2-glib-2.0"; then
-        return 0
-    fi
-
-    return 1
-}
-
 apt_pkg_exists() {
     apt-cache show "$1" &>/dev/null
+}
+
+dbus_client_available() {
+    command -v gdbus >/dev/null 2>&1 \
+        || command -v busctl >/dev/null 2>&1 \
+        || command -v dbus-send >/dev/null 2>&1
 }
 
 install_system_deps() {
@@ -88,7 +75,7 @@ install_system_deps() {
     local pkg
 
     for pkg in "${APT_PACKAGES[@]}"; do
-        if is_pkg_satisfied "${pkg}"; then
+        if is_pkg_installed "${pkg}"; then
             continue
         fi
         if ! apt_pkg_exists "${pkg}"; then
@@ -100,12 +87,17 @@ install_system_deps() {
 
     if ((${#missing[@]} == 0)); then
         log "Dependencias de Ubuntu/Debian ya instaladas."
-        return
+    else
+        log "Faltan ${#missing[@]} paquete(s) del sistema; instalando: ${missing[*]}"
+        run_as_root apt-get update -qq
+        run_as_root apt-get install -y --no-install-recommends "${missing[@]}"
     fi
 
-    log "Faltan ${#missing[@]} paquete(s) del sistema; instalando: ${missing[*]}"
-    run_as_root apt-get update -qq
-    run_as_root apt-get install -y --no-install-recommends "${missing[@]}"
+    if dbus_client_available; then
+        log "Cliente D-Bus disponible (gdbus/busctl/dbus-send)."
+    else
+        log "Aviso: no hay cliente D-Bus; idle en Wayland puede fallar."
+    fi
 }
 
 load_uinput_module() {
@@ -145,9 +137,9 @@ setup_uinput_permissions() {
 
 ensure_venv() {
     if [[ -d "${VENV_DIR}" ]]; then
-        if [[ ! -f "${VENV_DIR}/pyvenv.cfg" ]] \
-            || ! grep -q 'include-system-site-packages = true' "${VENV_DIR}/pyvenv.cfg"; then
-            log "El venv existente no incluye paquetes del sistema; recreando ${VENV_DIR}..."
+        if [[ -f "${VENV_DIR}/pyvenv.cfg" ]] \
+            && grep -q 'include-system-site-packages = true' "${VENV_DIR}/pyvenv.cfg"; then
+            log "El venv usa paquetes del sistema (obsoleto); recreando ${VENV_DIR}..."
             rm -rf "${VENV_DIR}"
         else
             log "Usando entorno virtual existente en ${VENV_DIR}."
@@ -155,8 +147,8 @@ ensure_venv() {
     fi
 
     if [[ ! -d "${VENV_DIR}" ]]; then
-        log "Creando entorno virtual en ${VENV_DIR} (--system-site-packages)..."
-        python3 -m venv --system-site-packages "${VENV_DIR}"
+        log "Creando entorno virtual en ${VENV_DIR}..."
+        python3 -m venv "${VENV_DIR}"
     fi
 
     if [[ ! -x "${VENV_DIR}/bin/python3" ]]; then
@@ -183,20 +175,84 @@ install_python_deps() {
     log "Actualizando pip..."
     "${py}" -m pip install -q --disable-pip-version-check --upgrade pip wheel setuptools
 
-    log "Instalando dependencias pip desde ${REQUIREMENTS} (PyGObject/pycairo vía apt)..."
+    log "Instalando dependencias pip desde ${REQUIREMENTS}..."
     "${py}" -m pip install -q --disable-pip-version-check -r "${REQUIREMENTS}"
 
     log "Verificando imports principales..."
     "${py}" - <<'PY'
-import gi
-gi.require_version("Gio", "2.0")
-from gi.repository import Gio
-import uinput
-print("OK: Gio, uinput")
+from utils.dbus_idle import DBusIdleError
+from utils.uinput_device import UInputDevice, REL_X
+print("OK: dbus_idle, uinput_device")
 PY
 }
 
-main() {
+deactivate_venv() {
+    if [[ -n "${VIRTUAL_ENV:-}" ]] && [[ "${VIRTUAL_ENV}" == "${VENV_DIR}" ]]; then
+        log "Desactivando entorno virtual..."
+        deactivate 2>/dev/null || true
+    fi
+}
+
+remove_venv() {
+    deactivate_venv
+    if [[ -d "${VENV_DIR}" ]]; then
+        log "Eliminando entorno virtual ${VENV_DIR}..."
+        rm -rf "${VENV_DIR}"
+        log "Entorno virtual eliminado."
+    else
+        log "No hay entorno virtual en ${VENV_DIR}."
+    fi
+}
+
+confirm_action() {
+    local assume_yes=$1
+    local prompt=$2
+
+    if [[ "${assume_yes}" == "true" ]]; then
+        return 0
+    fi
+
+    printf '%s [y/N] ' "${prompt}"
+    local answer
+    read -r answer
+    case "${answer}" in
+        y | Y | yes | YES) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+uninstall_system_deps() {
+    local assume_yes=$1
+    local mode=${2:-remove}
+    local removable=()
+    local pkg
+
+    for pkg in "${APT_PACKAGES_UNINSTALL[@]}"; do
+        if is_pkg_installed "${pkg}"; then
+            removable+=("${pkg}")
+        fi
+    done
+
+    if ((${#removable[@]} == 0)); then
+        if [[ "${mode}" == "preview" ]]; then
+            log "  - Paquetes apt: (ninguno instalado)"
+        else
+            log "No hay paquetes apt de kps instalados para desinstalar."
+        fi
+        return
+    fi
+
+    if [[ "${mode}" == "preview" ]]; then
+        log "  - Paquetes apt: ${removable[*]}"
+        return
+    fi
+
+    log "Desinstalando paquetes apt: ${removable[*]}"
+    run_as_root apt-get remove -y --auto-remove "${removable[@]}"
+    log "Paquetes apt desinstalados."
+}
+
+main_install() {
     require_linux
     require_apt
 
@@ -213,6 +269,78 @@ main() {
     if [[ -n "${SUDO_USER:-}" ]] || [[ -n "${USER:-}" ]]; then
         log "Si acabas de unirte al grupo uinput, cierra sesión y vuelve a entrar."
     fi
+}
+
+main_uninstall() {
+    local assume_yes=false
+
+    while ((${#} > 0)); do
+        case "$1" in
+            -y | --yes)
+                assume_yes=true
+                shift
+                ;;
+            -h | --help)
+                cat <<'EOF'
+Uso: install.sh --uninstall [-y|--yes]
+
+  -y, --yes   No pedir confirmación interactiva
+EOF
+                exit 0
+                ;;
+            *)
+                die "Opción desconocida en --uninstall: $1"
+                ;;
+        esac
+    done
+
+    require_linux
+    require_apt
+
+    log "Directorio del proyecto: ${PROJECT_ROOT}"
+    log "Desinstalación de kps:"
+    log "  - Eliminar ${VENV_DIR}"
+    uninstall_system_deps "${assume_yes}" "preview"
+    log "  - python3 no se desinstala (dependencia habitual del sistema)"
+    log "  - La regla udev y el grupo uinput no se modifican"
+
+    if ! confirm_action "${assume_yes}" "¿Continuar con la desinstalación?"; then
+        log "Desinstalación cancelada."
+        exit 0
+    fi
+
+    remove_venv
+    uninstall_system_deps "true" "remove"
+
+    log "Desinstalación completada."
+}
+
+usage() {
+    cat <<'EOF'
+Uso: install.sh [--uninstall [-y|--yes]]
+
+  (sin args)     Instala dependencias de sistema y Python
+  --uninstall    Elimina .venv y desinstala paquetes apt de kps (con confirmación)
+  -y, --yes      Omitir confirmación (solo con --uninstall)
+EOF
+}
+
+main() {
+    case "${1:-}" in
+        "")
+            main_install
+            ;;
+        --uninstall)
+            shift
+            main_uninstall "$@"
+            ;;
+        -h | --help)
+            usage
+            ;;
+        *)
+            die "Opción desconocida: $1 (usa --help)"
+            ;;
+    esac
 }
 
 main "$@"

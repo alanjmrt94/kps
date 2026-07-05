@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=kps
+GenericName=Keep pointer active
+Comment=Evita inactividad moviendo el cursor cuando el usuario está ausente
+Exec=kps %F
+Icon=kps
+Categories=Utility;
+Terminal=true
+StartupNotify=false

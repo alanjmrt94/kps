@@ -44,6 +44,7 @@ def test_run_with_tray_success() -> None:
                 "PIL.Image": mock_pil.Image,
             },
         ),
+        patch("utils.icons.load_tray_image", return_value=None),
         patch("utils.tray.threading.Thread") as mock_thread,
     ):
         mock_thread.return_value.start = MagicMock()

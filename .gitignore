@@ -41,6 +41,9 @@ share/python-wheels/
 *.egg
 MANIFEST
 *.spec
+!scripts/kps.spec
+!scripts/kps-linux.spec
+!scripts/kps-macos.spec
 
 # --- Entornos virtuales y secretos ---
 .env
@@ -104,8 +107,11 @@ db.sqlite3-journal
 .python-version
 .uv/
 
-# --- PyInstaller (Fase 5 del plan) ---
-*.manifest
+# --- PyInstaller / AppImage ---
+build/appimage/
+build/tools/
+assets/icons/build/
+*.AppImage
 
 # --- Jupyter (por si se usan notebooks de prueba) ---
 .ipynb_checkpoints/

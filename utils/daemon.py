@@ -7,7 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from utils.install import project_root
+from utils.install import is_bundled, project_root
 
 _FOREGROUND_FLAG = "--foreground"
 
@@ -35,7 +35,10 @@ def spawn_daemon(argv: list[str] | None = None) -> None:
 
     kps_script = project_root() / "kps.py"
     child_argv = strip_daemon_flags(args[1:])
-    cmd = [str(Path(sys.executable).resolve()), str(kps_script), _FOREGROUND_FLAG, *child_argv]
+    if is_bundled():
+        cmd = [str(Path(sys.executable).resolve()), _FOREGROUND_FLAG, *child_argv]
+    else:
+        cmd = [str(Path(sys.executable).resolve()), str(kps_script), _FOREGROUND_FLAG, *child_argv]
 
     kwargs: dict = {
         "cwd": project_root(),

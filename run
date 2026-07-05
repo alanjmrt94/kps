@@ -4,5 +4,11 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+if [[ "${1:-}" == "--uninstall" ]]; then
+    shift
+    "${ROOT}/scripts/install.sh" --uninstall "$@"
+    exit 0
+fi
+
 "${ROOT}/scripts/install.sh"
 exec "${ROOT}/.venv/bin/python3" "${ROOT}/kps.py" "$@"

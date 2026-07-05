@@ -1,25 +1,30 @@
-"""Mueve el cursor vía uinput (Linux). Requiere acceso a /dev/uinput sin sudo."""
+"""Mueve el cursor vía /dev/uinput (Linux). Requiere acceso sin sudo."""
 
 import sys
 import time
+from pathlib import Path
+
+if __name__ == "__main__" and __package__ is None:
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from utils.uinput_device import (  # pylint: disable=wrong-import-position
+    BTN_LEFT,
+    BTN_RIGHT,
+    REL_X,
+    REL_Y,
+    UInputDevice,
+)
 
 
 def move_once() -> None:
     """Realiza un pequeño movimiento horizontal del cursor."""
-    import uinput  # pylint: disable=import-outside-toplevel,import-error
-
-    events = (
-        uinput.REL_X,
-        uinput.REL_Y,
-        uinput.BTN_LEFT,
-        uinput.BTN_RIGHT,
-    )
-    with uinput.Device(events) as device:
+    events = (REL_X, REL_Y, BTN_LEFT, BTN_RIGHT)
+    with UInputDevice(events) as device:
         for i in range(3):
             if i == 2:
-                device.emit(uinput.REL_X, -75)
+                device.emit(REL_X, -75)
             else:
-                device.emit(uinput.REL_X, 100)
+                device.emit(REL_X, 100)
             time.sleep(0.5)
 
 

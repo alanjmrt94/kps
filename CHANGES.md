@@ -1,5 +1,76 @@
 # Release notes
 
+## 2.0.0
+
+**Release mayor — dependencias mínimas, empaquetado multiplataforma e iconos.**
+
+### Cambios rompedores (migración desde v1.7.x)
+
+* **Linux:** ya no se usa PyGObject (`python3-gi`) ni `python-uinput` en pip. Tras actualizar:
+  1. `./run --uninstall -y` (opcional: limpia venv y paquetes apt de kps)
+  2. `./run` (reinstala con 6 paquetes apt y venv nuevo sin `--system-site-packages`)
+  3. Cerrar sesión si cambió el grupo `uinput`
+* Si conservas un `.venv` antiguo (con `--system-site-packages`), bórralo y ejecuta `./scripts/install.sh`.
+* Idle D-Bus y movimiento uinput son **módulos internos**; no hace falta instalar `gi` ni compilar nada.
+
+### Linux — apt mínimo (X11 y Wayland)
+
+* Eliminados PyGObject, `python-uinput`, build-essential y paquetes `-dev` (~20 → **6** paquetes apt)
+* Paquetes apt: `python3`, `python3-pip`, `python3-venv`, `libglib2.0-bin`, `libx11-6`, `libxss1`
+* Idle D-Bus vía `gdbus`/`busctl`/`dbus-send` (`utils/dbus_idle.py`)
+* Movimiento uinput vía ctypes (`utils/uinput_device.py`)
+* Venv estándar (sin `--system-site-packages`)
+* Wayland: D-Bus Mutter / freedesktop / MATE (sin cambios funcionales)
+* X11: fallback XScreenSaver con `libx11-6` + `libxss1` (runtime)
+* **`utils/idle.py`** simplificado: delega en `dbus_idle` y XScreenSaver; sin imports `gi`
+* **`utils/app.py`** — detección X11/Wayland solo con variables de entorno (sin Gdk)
+* **`utils/keyboard_pulse.py`** — pulso Shift en Linux vía `uinput_device` (sin `python-uinput`)
+
+### Movimiento del ratón y runtime
+
+* **`run_move()`** ejecuta el movimiento **in-process** (dev y empaquetado); ya no lanza subprocess `utils/move.py` (evita `ModuleNotFoundError: utils`)
+* **`utils/move.py`** — ejecutable directo (`python utils/move.py`) con bootstrap de `sys.path`
+* **`is_bundled()`** (`utils/install.py`) — omite venv, autoinstall y verify de pip en binarios PyInstaller/AppImage
+* **Daemon** (`utils/daemon.py`) — en modo empaquetado re-ejecuta el binario, no `kps.py`
+
+### Desinstalación
+
+* `./scripts/install.sh --uninstall` — preview, confirmación y borrado de `.venv` + paquetes apt de kps
+* `./run --uninstall` — delega a `install.sh --uninstall`
+* Opción `-y` / `--yes` para omitir confirmación
+* **No** elimina `python3`, la regla udev ni revierte el grupo `uinput`
+
+### Empaquetado (usuario final)
+
+* **Windows:** `scripts/build_windows.bat` + `scripts/kps.spec` → `dist/kps.exe`
+* **macOS:** `scripts/build_macos.sh` + `scripts/kps-macos.spec` → `dist/kps.app`
+* **Linux:** `scripts/build_appimage.sh` + `scripts/kps-linux.spec` → `dist/kps-<arch>.AppImage`
+* Specs versionados en el repo (`*.spec` en `scripts/`; excepción en `.gitignore`)
+* Lanzador **`./run-appimage`** (desde la raíz del repo)
+* Builds excluyen `gi` / PyGObject del bundle
+
+### Iconos
+
+* Suite en `assets/icons/` (ICO, ICNS, hicolor, bandeja, AppImage)
+* Fuentes: `assets/image_base.png`, `assets/image_base.icns` (opcional)
+* Scripts: `scripts/generate_icons.sh`, `scripts/verify_icons.sh`, `scripts/generate_icons.py`
+* **`utils/icons.py`** — rutas de iconos en dev y empaquetado; bandeja `--tray` y datos PyInstaller
+* **`utils/tray.py`** — carga icono desde `assets/icons/kps-tray.png`
+
+### CI y calidad
+
+* Job **`test-linux`**: eliminado paso apt PyGObject; tests idle vía mocks de `dbus_idle`
+* **211 tests** (1 skipped), cobertura ~98% (umbral CI ≥ 95%)
+* Nuevos: `test_dbus_idle.py`, `test_uinput_device.py`, `test_icons.py`
+* Actualizados: `test_idle.py`, `test_install.py`, `test_runner.py`, `test_move.py`, `test_daemon.py`, …
+
+### Otros
+
+* **`.gitignore`**: `build/appimage/`, `build/tools/`, `assets/icons/build/`, `*.AppImage`
+* Plan de pendientes: `.cursor/plans/kps_pending.plan.md`
+
+---
+
 ## 1.7.2
 
 **Parche CI y mypy (post v1.7.1).**
