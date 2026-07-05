@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-from tests.helpers import ensure_linux_uinput_modules
+from tests.helpers import linux_uinput_modules
 from utils import keyboard_pulse
 
 
@@ -21,15 +21,15 @@ def test_pulse_pyautogui_success() -> None:
 
 def test_pulse_uinput_success() -> None:
     """Comprueba pulse uinput success."""
-    ensure_linux_uinput_modules()
     device = MagicMock()
     device.__enter__ = MagicMock(return_value=device)
     device.__exit__ = MagicMock(return_value=False)
-    with (
-        patch("utils.uinput_device.UInputDevice", return_value=device),
-        patch.object(keyboard_pulse.sys, "platform", "linux"),
-    ):
-        assert keyboard_pulse.pulse_shift() is True
+    with linux_uinput_modules():
+        with (
+            patch("utils.uinput_device.UInputDevice", return_value=device),
+            patch.object(keyboard_pulse.sys, "platform", "linux"),
+        ):
+            assert keyboard_pulse.pulse_shift() is True
 
 
 def test_pulse_pyautogui_import_error() -> None:
@@ -50,12 +50,12 @@ def test_pulse_pyautogui_oserror() -> None:
 
 def test_pulse_uinput_permission_error() -> None:
     """Comprueba pulse uinput permission error."""
-    ensure_linux_uinput_modules()
-    with (
-        patch(
-            "utils.uinput_device.UInputDevice",
-            side_effect=PermissionError("udev"),
-        ),
-        patch.object(keyboard_pulse.sys, "platform", "linux"),
-    ):
-        assert keyboard_pulse.pulse_shift() is False
+    with linux_uinput_modules():
+        with (
+            patch(
+                "utils.uinput_device.UInputDevice",
+                side_effect=PermissionError("udev"),
+            ),
+            patch.object(keyboard_pulse.sys, "platform", "linux"),
+        ):
+            assert keyboard_pulse.pulse_shift() is False

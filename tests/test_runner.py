@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from tests.helpers import ensure_linux_uinput_modules
+from tests.helpers import linux_uinput_modules
 import utils.runner as runner
 from utils.cli import KpsConfig
 from utils.const import MOVE_SCRIPT_LINUX, MOVE_SCRIPT_MACOS, MOVE_SCRIPT_WINDOWS, OsType
@@ -62,26 +62,26 @@ def test_move_script_path_macos() -> None:
 
 def test_run_move_success() -> None:
     """Comprueba run move success."""
-    ensure_linux_uinput_modules()
-    with (
-        patch("utils.runner.time.sleep"),
-        patch("utils.move.move_once") as mock_move,
-        patch.object(sys, "platform", "linux"),
-        patch.object(runner.os, "name", OsType.UNIX),
-    ):
-        run_move()
+    with linux_uinput_modules():
+        with (
+            patch("utils.runner.time.sleep"),
+            patch("utils.move.move_once") as mock_move,
+            patch.object(sys, "platform", "linux"),
+            patch.object(runner.os, "name", OsType.UNIX),
+        ):
+            run_move()
     mock_move.assert_called_once()
 
 
 def test_run_move_failure() -> None:
     """Comprueba run move failure."""
-    ensure_linux_uinput_modules()
-    with (
-        patch("utils.move.move_once", side_effect=OSError("uinput fail")),
-        patch.object(sys, "platform", "linux"),
-        patch.object(runner.os, "name", OsType.UNIX),
-    ):
-        run_move()
+    with linux_uinput_modules():
+        with (
+            patch("utils.move.move_once", side_effect=OSError("uinput fail")),
+            patch.object(sys, "platform", "linux"),
+            patch.object(runner.os, "name", OsType.UNIX),
+        ):
+            run_move()
 
 
 def test_run_move_failure_no_stderr() -> None:
@@ -95,14 +95,14 @@ def test_run_move_failure_no_stderr() -> None:
 
 def test_run_move_bundled_linux() -> None:
     """Comprueba run move bundled linux."""
-    ensure_linux_uinput_modules()
-    with (
-        patch("utils.runner.time.sleep"),
-        patch("utils.move.move_once") as mock_move,
-        patch.object(sys, "platform", "linux"),
-        patch.object(runner.os, "name", OsType.UNIX),
-    ):
-        run_move()
+    with linux_uinput_modules():
+        with (
+            patch("utils.runner.time.sleep"),
+            patch("utils.move.move_once") as mock_move,
+            patch.object(sys, "platform", "linux"),
+            patch.object(runner.os, "name", OsType.UNIX),
+        ):
+            run_move()
     mock_move.assert_called_once()
 
 
