@@ -552,11 +552,12 @@ def test_is_bundled() -> None:
 
 def test_project_root_bundled() -> None:
     """Comprueba project root bundled."""
+    executable = Path("/opt/kps/kps")
     with (
         patch.object(install, "is_bundled", return_value=True),
-        patch.object(install.sys, "executable", "/opt/kps/kps"),
+        patch.object(install.sys, "executable", str(executable)),
     ):
-        assert install.project_root() == Path("/opt/kps")
+        assert install.project_root() == executable.resolve().parent
 
 
 def test_setup_environment_bundled() -> None:

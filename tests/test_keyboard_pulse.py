@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
+from tests.helpers import ensure_linux_uinput_modules
 from utils import keyboard_pulse
 
 
@@ -20,6 +21,7 @@ def test_pulse_pyautogui_success() -> None:
 
 def test_pulse_uinput_success() -> None:
     """Comprueba pulse uinput success."""
+    ensure_linux_uinput_modules()
     device = MagicMock()
     device.__enter__ = MagicMock(return_value=device)
     device.__exit__ = MagicMock(return_value=False)
@@ -48,6 +50,7 @@ def test_pulse_pyautogui_oserror() -> None:
 
 def test_pulse_uinput_permission_error() -> None:
     """Comprueba pulse uinput permission error."""
+    ensure_linux_uinput_modules()
     with (
         patch(
             "utils.uinput_device.UInputDevice",
