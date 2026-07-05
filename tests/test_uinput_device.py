@@ -8,7 +8,9 @@ from unittest.mock import patch
 
 import pytest
 
-from utils import uinput_device
+pytest.importorskip("fcntl", reason="uinput solo en Linux")
+
+from utils import uinput_device  # pylint: disable=wrong-import-position
 
 
 def test_pack_input_event_size() -> None:

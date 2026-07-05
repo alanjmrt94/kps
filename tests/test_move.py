@@ -1,19 +1,24 @@
 """Tests de movimiento del ratón (mockeado, sin hardware)."""
 
 
-# pylint: disable=missing-function-docstring,missing-class-docstring,protected-access,import-outside-toplevel,consider-using-from-import
+# pylint: disable=missing-function-docstring,missing-class-docstring,protected-access,import-outside-toplevel,consider-using-from-import,invalid-name
 from __future__ import annotations
 
 import runpy
+import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-import utils.move as move_linux
 import utils.move_mac as move_mac
 import utils.move_win as move_win
 from utils import move_pyautogui
+
+if sys.platform == "linux":
+    import utils.move as move_linux
+else:
+    move_linux = None  # type: ignore[assignment,misc]
 
 
 def test_jiggle_cursor_success() -> None:
@@ -38,6 +43,7 @@ def test_move_win_and_mac_main() -> None:
         assert move_mac.main() == 1
 
 
+@pytest.mark.skipif(sys.platform != "linux", reason="uinput solo en Linux")
 def test_move_once_with_uinput_mock() -> None:
     device = MagicMock()
     device.__enter__ = MagicMock(return_value=device)
@@ -50,6 +56,7 @@ def test_move_once_with_uinput_mock() -> None:
     assert device.emit.call_count == 3
 
 
+@pytest.mark.skipif(sys.platform != "linux", reason="uinput solo en Linux")
 def test_move_linux_success() -> None:
     with (
         patch.object(move_linux, "move_once"),
@@ -58,12 +65,14 @@ def test_move_linux_success() -> None:
         assert move_linux.main() == 0
 
 
+@pytest.mark.skipif(sys.platform != "linux", reason="uinput solo en Linux")
 def test_move_linux_permission_error(capsys: pytest.CaptureFixture[str]) -> None:
     with patch.object(move_linux, "move_once", side_effect=PermissionError):
         assert move_linux.main() == 1
     assert "uinput" in capsys.readouterr().err
 
 
+@pytest.mark.skipif(sys.platform != "linux", reason="uinput solo en Linux")
 def test_move_linux_os_error() -> None:
     with patch.object(move_linux, "move_once", side_effect=OSError("broken")):
         assert move_linux.main() == 1
@@ -72,7 +81,6 @@ def test_move_linux_os_error() -> None:
 def test_move_entrypoints_main() -> None:
     win_path = Path(move_win.__file__)
     mac_path = Path(move_mac.__file__)
-    linux_path = Path(move_linux.__file__)
     with patch("utils.move_pyautogui.jiggle_cursor", return_value=0):
         with pytest.raises(SystemExit) as exc:
             runpy.run_path(str(win_path), run_name="__main__")
@@ -81,12 +89,17 @@ def test_move_entrypoints_main() -> None:
         with pytest.raises(SystemExit) as exc:
             runpy.run_path(str(mac_path), run_name="__main__")
         assert exc.value.code == 1
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="uinput solo en Linux")
+def test_move_entrypoints_linux_main() -> None:
+    linux_path = Path(move_linux.__file__)
     device = MagicMock()
     device.__enter__ = MagicMock(return_value=device)
     device.__exit__ = MagicMock(return_value=False)
     with (
-        patch("utils.move.UInputDevice", return_value=device),
-        patch.object(move_linux.time, "sleep"),
+        patch("utils.uinput_device.UInputDevice", return_value=device),
+        patch("time.sleep"),
     ):
         with pytest.raises(SystemExit) as exc:
             runpy.run_path(str(linux_path), run_name="__main__")

@@ -33,6 +33,7 @@ dev = [
     "pytest-cov>=4.1",
     "pylint>=3.0",
     "mypy>=1.8",
+    "autopep8>=2.0",
 ]
 gui = [
     "pystray>=0.19",
@@ -40,6 +41,10 @@ gui = [
 ]
 build = [
     "pyinstaller>=6.0",
+]
+release = [
+    "build>=1.0",
+    "twine>=5.0",
 ]
 
 [project.scripts]

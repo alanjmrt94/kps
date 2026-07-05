@@ -18,4 +18,4 @@ good-names=dx,dy,i,j,k,ex,Run,Id,Autoinstall
 
 [TYPECHECK]
 generated-members=ctypes.*
-ignored-modules=gi,gi.repository,pytest
+ignored-modules=gi,gi.repository,pytest,PIL

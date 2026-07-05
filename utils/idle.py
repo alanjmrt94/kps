@@ -220,7 +220,7 @@ if sys.platform not in ('win32', 'darwin'):
         def get_idle_sec(self) -> float | int:
             if self._idle_monitor is None:
                 return 0
-            return self._idle_monitor.get_idle_sec()
+            return cast(float | int, self._idle_monitor.get_idle_sec())
 
         @staticmethod
         def _get_idle_monitor():

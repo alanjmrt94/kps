@@ -171,6 +171,59 @@ Si ejecutas el `.AppImage` directamente y falla con `libfuse.so.2`, usa `./run-a
 
 **Lanzador desarrollo con venv:** `../run`.
 
+## Lint y tipos (`lint.sh`)
+
+Pylint no tiene `--fix`; el script usa **autopep8** (PEP 8, `max-line-length=100`) y luego **pylint** + **mypy** como en CI.
+
+```bash
+./scripts/lint.sh           # fix + verificar
+./scripts/lint.sh --check   # solo pylint y mypy
+./scripts/lint.sh --fix     # solo autopep8
+```
+
+Requiere `pip install ".[dev]"` (o el script instala autopep8 / dev en el venv activo).
+
+## Publicación (release)
+
+`release.sh` — menú interactivo para publicar una versión:
+
+| Opción | Qué hace |
+|--------|----------|
+| GitHub Release | Tag `vX.Y.Z`, notas desde `CHANGES.md`, adjunta `dist/*` si existen |
+| PyPI | `python -m build` + `twine upload` |
+| AppImage | `build_appimage.sh`; opcionalmente sube el `.AppImage` al release |
+| AppImageHub | PR a [appimage.github.io](https://github.com/AppImage/appimage.github.io) (`data/kps`) |
+| Todo | Tests (opcional) → PyPI → AppImage → GitHub → PR AppImageHub (opcional) |
+
+**Requisitos**
+
+* `gh` autenticado (`gh auth login`)
+* `PYPI_API_TOKEN` o `TWINE_PASSWORD` (token de [pypi.org](https://pypi.org/manage/account/token/))
+* Versión alineada en `utils/const.py` y `pyproject.toml`
+* Sección `## X.Y.Z` en `CHANGES.md` para las notas del release
+
+```bash
+export PYPI_API_TOKEN=pypi-...
+./scripts/release.sh              # menú interactivo
+./scripts/release.sh appimagehub  # solo PR al catálogo
+```
+
+**AppImageHub**
+
+1. Publica antes el **GitHub Release** con el `.AppImage` adjunto (la inspección descarga el binario con `wget`).
+2. Opción **6** o `./scripts/release.sh appimagehub`:
+   - **Alta nueva** — crea `data/kps` con la URL del repo (`scripts/appimage/appimagehub.data`).
+   - **Re-inspección** — añade o quita una línea `#` para forzar actualización de metadatos.
+3. El script hace fork, branch, commit y `gh pr create` contra `AppImage/appimage.github.io`.
+4. Espera el check verde en el PR; catálogo: https://appimage.github.io/kps/
+
+**¿Dónde publicar además?**
+
+* **GitHub Releases** — canal principal para el AppImage y futuros `.exe` / `.app`.
+* **PyPI** — `pip install kps`; las dependencias de plataforma siguen vía `install.sh` / `pip install kps[gui]`.
+* **AppImageHub** — catálogo comunitario (PR automatizado desde `release.sh`).
+* Homebrew / Winget / Flathub — solo si más adelante mantienes fórmulas o empaquetado distinto (no necesario ahora).
+
 ## Requirements
 
 | Archivo | Plataforma | Paquetes principales |
