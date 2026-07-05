@@ -135,6 +135,17 @@ Genera `dist/kps-x86_64.AppImage` (o `kps-aarch64.AppImage` en ARM).
 
 Spec PyInstaller: `kps-linux.spec` (excluye `gi`; incluye `assets/icons/` si existen).
 
+Metadatos AppStream: `scripts/appimage/io.github.alanjmrt94.kps.appdata.xml` (validado por `appimagetool`).
+
+### CI (GitHub Actions)
+
+El workflow `.github/workflows/ci.yml` incluye el job **`build-appimage`**:
+
+1. Crea `.venv` e instala `scripts/requirements.txt`
+2. Ejecuta `./scripts/build_appimage.sh`
+3. Smoke test: `APPIMAGE_EXTRACT_AND_RUN=1 dist/kps-x86_64.AppImage -h`
+4. Publica el artefacto **`kps-x86_64-appimage`** (retención 14 días)
+
 ### Cómo ejecutar el AppImage
 
 | Quién | Desde dónde | Comando |
@@ -143,6 +154,10 @@ Spec PyInstaller: `kps-linux.spec` (excluye `gi`; incluye `assets/icons/` si exi
 | Usuario final | Cualquier carpeta | `./kps-x86_64.AppImage -h` o doble clic (terminal) |
 
 `run-appimage` busca `dist/kps-<arquitectura>.AppImage` y reenvía los argumentos a CLI de kps.
+
+Usa FUSE si `libfuse2` está instalado. Si no, **pregunta** si instalarlo con apt (`libfuse2`); con `-y` instala sin confirmar. Si se rechaza o falla, usa `APPIMAGE_EXTRACT_AND_RUN=1`.
+
+Si ejecutas el `.AppImage` directamente y falla con `libfuse.so.2`, usa `./run-appimage` o `sudo apt install libfuse2`.
 
 ### Qué incluye / qué no
 

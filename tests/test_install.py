@@ -543,6 +543,24 @@ def test_verify_bundled_runtime_import_fail() -> None:
             install.verify_bundled_runtime()
 
 
+def test_run_import_check_bundled_inprocess() -> None:
+    with (
+        patch.object(install, "is_bundled", return_value=True),
+        patch.object(install, "_import_check_inprocess", return_value=True) as mock_check,
+    ):
+        assert install._run_import_check() is True
+        mock_check.assert_called_once()
+
+
+def test_verify_uinput_device_bundled() -> None:
+    with (
+        patch.object(install, "is_bundled", return_value=True),
+        patch.object(install, "detect_os", return_value="linux"),
+        patch.object(install, "_uinput_check_inprocess", return_value=True),
+    ):
+        assert install.verify_uinput_device(quiet=True) is True
+
+
 def test_verify_runtime_delegates_to_bundled() -> None:
     with (
         patch.object(install, "is_bundled", return_value=True),

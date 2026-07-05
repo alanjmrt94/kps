@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib
 import os
 import shutil
 import subprocess
@@ -30,6 +31,12 @@ from utils.uinput_device import REL_X, UInputDevice
 with UInputDevice((REL_X,)) as device:
     device.emit(REL_X, 1)
 """
+
+_BUNDLED_IMPORT_MODULES = {
+    "linux": ("utils.dbus_idle", "utils.uinput_device"),
+    "windows": ("pyautogui",),
+    "macos": ("pyautogui", "Quartz"),
+}
 
 
 def is_bundled() -> bool:
@@ -159,6 +166,28 @@ def install_pip_deps() -> None:
     _run([str(pip), "install", "-r", str(req)])
 
 
+def _import_check_inprocess() -> bool:
+    """Verifica imports en el proceso actual (PyInstaller no soporta ``-c``)."""
+    try:
+        for module_name in _BUNDLED_IMPORT_MODULES[detect_os()]:
+            importlib.import_module(module_name)
+        return True
+    except ImportError:
+        return False
+
+
+def _uinput_check_inprocess() -> bool:
+    """Prueba uinput en el proceso actual (binario empaquetado)."""
+    try:
+        uinput = importlib.import_module("utils.uinput_device")
+        rel_x = uinput.REL_X
+        with uinput.UInputDevice((rel_x,)) as device:
+            device.emit(rel_x, 1)
+        return True
+    except (ImportError, OSError, PermissionError):
+        return False
+
+
 def _import_check_result() -> subprocess.CompletedProcess[str]:
     """Ejecuta la verificación de imports en el venv."""
     py = venv_python()
@@ -177,16 +206,26 @@ def _import_check_result() -> subprocess.CompletedProcess[str]:
 
 def _run_import_check() -> bool:
     """Comprueba imports en el venv o binario empaquetado sin imprimir mensajes."""
+    if is_bundled():
+        return _import_check_inprocess()
     py = venv_python()
-    if not is_bundled() and not py.is_file():
+    if not py.is_file():
         return False
     return _import_check_result().returncode == 0
 
 
 def verify_imports() -> bool:
     """Comprueba que los imports principales funcionan en el venv."""
+    if is_bundled():
+        print("[kps] Verificando imports principales...")
+        if _import_check_inprocess():
+            print("[kps] OK: imports verificados.")
+            return True
+        print("[kps] ERROR: falló la verificación de imports.")
+        return False
+
     py = venv_python()
-    if not is_bundled() and not py.is_file():
+    if not py.is_file():
         print("[kps] ERROR: no existe el intérprete del venv. Ejecuta la instalación primero.")
         return False
 
@@ -245,6 +284,19 @@ def verify_uinput_device(*, quiet: bool = False) -> bool:
     """Prueba abrir uinput y emitir un evento mínimo (sin sudo)."""
     if detect_os() != "linux":
         return True
+
+    if is_bundled():
+        if not quiet:
+            print("[kps] Probando acceso uinput (sin sudo)...")
+        if _uinput_check_inprocess():
+            if not quiet:
+                print("[kps] OK: uinput operativo sin sudo.")
+            return True
+        print("[kps] ERROR: uinput no operativo.")
+        hint = describe_uinput_issue()
+        if hint:
+            print(f"[kps] {hint}")
+        return False
 
     py = venv_python()
     if not py.is_file():

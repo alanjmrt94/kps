@@ -4,10 +4,47 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DIST="${ROOT}/dist"
+ASSUME_YES=false
+
+log() {
+    printf '[kps] %s\n' "$*"
+}
 
 die() {
     printf '[kps] ERROR: %s\n' "$*" >&2
     exit 1
+}
+
+usage() {
+    cat <<'EOF'
+Uso: run-appimage [opciones] [argumentos de kps...]
+
+Opciones del lanzador:
+  -y, --yes    Instalar libfuse2 sin preguntar (solo si falta y hay apt)
+  --help       Ayuda de este lanzador (los demás argumentos se pasan a kps)
+
+Si libfuse2 no está instalado, pregunta si instalarlo con apt. Si se rechaza
+o no hay apt, usa APPIMAGE_EXTRACT_AND_RUN=1.
+EOF
+}
+
+parse_launcher_args() {
+    while ((${#} > 0)); do
+        case "$1" in
+            -y | --yes)
+                ASSUME_YES=true
+                shift
+                ;;
+            --help)
+                usage
+                exit 0
+                ;;
+            *)
+                break
+                ;;
+        esac
+    done
+    LAUNCHER_REMAINING=("$@")
 }
 
 find_appimage() {
@@ -34,5 +71,85 @@ find_appimage() {
     die "No hay AppImage en dist/. Genera uno con: ./scripts/build_appimage.sh"
 }
 
-APPIMAGE="$(find_appimage)"
-exec "${APPIMAGE}" "$@"
+has_libfuse2() {
+    if ldconfig -p 2>/dev/null | grep -qE 'libfuse\.so\.2(\s|$)'; then
+        return 0
+    fi
+    if command -v dpkg >/dev/null 2>&1 && dpkg -s libfuse2 >/dev/null 2>&1; then
+        return 0
+    fi
+    return 1
+}
+
+confirm_yes() {
+    local prompt=$1
+    if [[ "${ASSUME_YES}" == true ]]; then
+        return 0
+    fi
+    if [[ ! -t 0 ]]; then
+        return 1
+    fi
+    printf '%s [y/N] ' "${prompt}"
+    local answer
+    read -r answer
+    case "${answer}" in
+        y | Y | yes | YES) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+install_libfuse2() {
+    command -v apt-get >/dev/null 2>&1 || return 1
+
+    log "Instalando libfuse2 (requiere sudo)..."
+    if ! sudo apt-get update -qq; then
+        log "AVISO: apt-get update falló."
+        return 1
+    fi
+    if ! sudo apt-get install -y --no-install-recommends libfuse2; then
+        log "AVISO: no se pudo instalar libfuse2."
+        return 1
+    fi
+    has_libfuse2
+}
+
+ensure_libfuse2() {
+    if has_libfuse2; then
+        return 0
+    fi
+
+    local quiet=false
+    if ((${#LAUNCHER_REMAINING[@]} > 0)); then
+        case "${LAUNCHER_REMAINING[0]}" in
+            -h | --help) quiet=true ;;
+        esac
+    fi
+
+    if command -v apt-get >/dev/null 2>&1 && [[ "${quiet}" == false ]]; then
+        if confirm_yes "[kps] libfuse2 no está instalado. ¿Instalarlo con apt?"; then
+            if install_libfuse2; then
+                log "libfuse2 instalado."
+                return 0
+            fi
+        fi
+    elif [[ "${quiet}" == false ]] && ! command -v apt-get >/dev/null 2>&1; then
+        log "libfuse2 no detectado y apt-get no está disponible."
+    fi
+
+    if [[ "${quiet}" == false ]]; then
+        log "Ejecutando sin FUSE (APPIMAGE_EXTRACT_AND_RUN=1)."
+    fi
+    export APPIMAGE_EXTRACT_AND_RUN=1
+    return 0
+}
+
+main() {
+    parse_launcher_args "$@"
+
+    local appimage
+    appimage="$(find_appimage)"
+    ensure_libfuse2
+    exec "${appimage}" "${LAUNCHER_REMAINING[@]}"
+}
+
+main "$@"

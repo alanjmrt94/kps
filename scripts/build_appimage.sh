@@ -84,10 +84,13 @@ assemble_appdir() {
     local bundle_dest="${APPDIR}/usr/lib/kps"
     local app_png="${ICONS_ROOT}/linux/kps.png"
     local hicolor="${ICONS_ROOT}/linux/hicolor"
+    local desktop="${SCRIPT_DIR}/appimage/io.github.alanjmrt94.kps.desktop"
+    local appdata="${SCRIPT_DIR}/appimage/io.github.alanjmrt94.kps.appdata.xml"
+    local desktop_id="io.github.alanjmrt94.kps.desktop"
 
     log "Montando AppDir en ${APPDIR}..."
     rm -rf "${APPDIR}"
-    mkdir -p "${bundle_dest}" "${APPDIR}/usr/share/applications"
+    mkdir -p "${bundle_dest}" "${APPDIR}/usr/share/applications" "${APPDIR}/usr/share/metainfo"
 
     cp -a "${DIST_DIR}/kps/." "${bundle_dest}/"
 
@@ -102,8 +105,9 @@ exec "${APPDIR}/usr/lib/kps/kps" "$@"
 EOF
     chmod +x "${APPDIR}/AppRun"
 
-    cp "${SCRIPT_DIR}/appimage/kps.desktop" "${APPDIR}/kps.desktop"
-    cp "${SCRIPT_DIR}/appimage/kps.desktop" "${APPDIR}/usr/share/applications/kps.desktop"
+    cp "${desktop}" "${APPDIR}/${desktop_id}"
+    cp "${desktop}" "${APPDIR}/usr/share/applications/${desktop_id}"
+    cp "${appdata}" "${APPDIR}/usr/share/metainfo/io.github.alanjmrt94.kps.appdata.xml"
 
     if [[ -d "${hicolor}" ]] && find "${hicolor}" -name 'kps.png' -print -quit | grep -q .; then
         log "Instalando iconos hicolor en AppDir..."
@@ -140,7 +144,8 @@ print_usage() {
     log ""
     log "Cómo ejecutar (usuario final):"
     log "  ${DIST_DIR}/kps-$(detect_arch).AppImage -h"
-    log "  ./run-appimage -h          (desde la raíz del proyecto)"
+    log "  ./run-appimage -h          (desde la raíz del proyecto; sin libfuse2)"
+    log "  APPIMAGE_EXTRACT_AND_RUN=1 ./dist/kps-*.AppImage   (sin ./run-appimage)"
     log ""
     log "Iconos: coloca la suite en assets/icons/ (ver assets/icons/README.md)"
 }

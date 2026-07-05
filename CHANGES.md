@@ -1,5 +1,31 @@
 # Release notes
 
+## 2.0.1
+
+**Parche AppImage y runtime empaquetado.**
+
+### AppImage
+
+* Metadatos **AppStream** (`io.github.alanjmrt94.kps.appdata.xml`) — validación `appstreamcli` OK
+* Desktop entry con id reverse-DNS (`io.github.alanjmrt94.kps.desktop`)
+* **`run-appimage`**: ofrece instalar **libfuse2** con apt; opción `-y`; fallback `APPIMAGE_EXTRACT_AND_RUN=1`
+
+### Runtime empaquetado
+
+* **`verify_bundled_runtime()`** — verificación de imports y uinput **in-process** vía `importlib` (PyInstaller no soporta `python -c`)
+* Corrige: `Los imports no están disponibles en el binario empaquetado`
+
+### CI
+
+* Job **`build-appimage`** en GitHub Actions (`.github/workflows/ci.yml`)
+* Ejecuta `build_appimage.sh`, smoke test con `APPIMAGE_EXTRACT_AND_RUN=1` y publica artefacto `kps-x86_64.AppImage` (14 días)
+
+### Tests
+
+* Nuevos casos bundled en `test_install.py`
+
+---
+
 ## 2.0.0
 
 **Release mayor — dependencias mínimas, empaquetado multiplataforma e iconos.**

@@ -58,3 +58,26 @@ jobs:
         run: pip install ".[dev]"
       - name: Pytest (idle Linux no importable en Windows)
         run: python -m pytest --cov-fail-under=0
+
+  build-appimage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Preparar venv para build
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install -q --upgrade pip wheel setuptools
+          .venv/bin/pip install -q -r scripts/requirements.txt
+      - name: Build AppImage
+        run: bash scripts/build_appimage.sh
+      - name: Smoke test (sin libfuse2)
+        run: APPIMAGE_EXTRACT_AND_RUN=1 ./dist/kps-x86_64.AppImage -h
+      - name: Subir artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: kps-x86_64-appimage
+          path: dist/kps-x86_64.AppImage
+          retention-days: 14

@@ -13,6 +13,12 @@ The program works in the background and waits only for inactivity to move the mo
 
 ## Latest changes
 
+Release **v2.0.1** — parche AppImage:
+
+* **AppStream** en AppImage (metadatos validados por `appimagetool`)
+* **`run-appimage`**: pregunta por instalar `libfuse2`; fallback sin FUSE
+* **CI:** job `build-appimage` en GitHub Actions (artefacto `kps-x86_64.AppImage`)
+
 Release **v2.0.0** — dependencias mínimas, empaquetado e iconos:
 
 * **Linux:** 6 paquetes apt (sin PyGObject ni `python-uinput`); D-Bus vía `gdbus`/`busctl`; uinput vía ctypes
@@ -188,7 +194,9 @@ Además configura `/dev/uinput` vía udev (`scripts/udev-rules/40-uinput.rules`)
 
 **Suite de iconos:** coloca `assets/image_base.png` (y opcionalmente `assets/image_base.icns`) y ejecuta `./scripts/generate_icons.sh`. Verificar con `./scripts/verify_icons.sh`.
 
-**Desarrollo** (con venv): `./run` · **AppImage** (sin Python): `./run-appimage` o `dist/kps-*.AppImage`
+**Desarrollo** (con venv): `./run` · **AppImage** (sin Python): `./run-appimage` (ofrece instalar `libfuse2` si falta)
+
+Si ejecutas `dist/kps-*.AppImage` a mano y aparece `libfuse.so.2`, usa `./run-appimage` o `sudo apt install libfuse2`.
 
 Tras `install.bat` / `install-macos.sh` / `install.sh`, ejecuta el script de build de tu plataforma. En macOS puede hacer falta **Accesibilidad** para `pyautogui`. En Linux el AppImage aún requiere **gdbus** y permisos **uinput** en el host (ver abajo).
 
@@ -242,7 +250,7 @@ Ejecutar tests y lint:
     pytest          # 211 tests; cobertura ≥ 95% en CI
     pylint kps.py utils/*.py tests/*.py
 
-CI en GitHub corre los mismos checks en cada push/PR a `main`/`master`.
+CI en GitHub corre los mismos checks en cada push/PR a `main`/`master`: `lint`, `mypy`, `test-linux` (3.10–3.12), `test-windows` y **`build-appimage`** (artefacto descargable).
 
 Instalar como comando global (tras `pip install .`):
 
@@ -283,7 +291,7 @@ kps/
 
 See `.cursor/plans/kps_pending.plan.md` for the current roadmap.
 
-**v2.0.0** — dependencias mínimas en Linux, empaquetado Win/macOS/AppImage, iconos y desinstalación. Pendiente: pruebas manuales Windows/macOS y PyPI opcional.
+**v2.0.1** — AppImage (AppStream, libfuse2, verify bundled). **v2.0.0** — deps mínimas, empaquetado e iconos. Pendiente: pruebas manuales Windows/macOS y PyPI opcional.
 
 ## Older releases
 

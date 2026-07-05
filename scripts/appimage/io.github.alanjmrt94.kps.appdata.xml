@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.alanjmrt94.kps</id>
+  <name>kps</name>
+  <summary>Evita inactividad moviendo el cursor cuando estás ausente</summary>
+  <description>
+    <p>
+      kps detecta inactividad del usuario y mueve el cursor para evitar
+      suspensión, bloqueo de sesión o cambio de estado en aplicaciones
+      como Teams o Slack.
+    </p>
+    <p>Compatible con sesiones Linux X11 y Wayland.</p>
+  </description>
+  <launchable type="desktop-id">io.github.alanjmrt94.kps.desktop</launchable>
+  <url type="homepage">https://github.com/alanjmrt94/kps</url>
+  <developer id="io.github.alanjmrt94">
+    <name>alanjmrt94</name>
+  </developer>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="2.0.1" date="2026-07-05">
+      <description>
+        <p>AppImage: AppStream, libfuse2, verify bundled in-process, CI build-appimage.</p>
+      </description>
+    </release>
+    <release version="2.0.0" date="2026-07-04">
+      <description>
+        <p>Dependencias mínimas en Linux, empaquetado AppImage e iconos.</p>
+      </description>
+    </release>
+  </releases>
+</component>
