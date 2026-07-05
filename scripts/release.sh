@@ -334,6 +334,23 @@ pypi_dist_glob() {
     printf 'dist/%s-*' "$(pypi_dist_prefix)"
 }
 
+# Resuelve rutas reales de sdist/wheel para la versión actual en dist/.
+pypi_find_artifacts() {
+    local prefix version
+    prefix="$(pypi_dist_prefix)"
+    version="${VERSION:-$(get_version)}"
+    PYPI_SDIST="dist/${prefix}-${version}.tar.gz"
+    local wheels
+    shopt -s nullglob
+    wheels=( dist/${prefix}-${version}-*.whl )
+    shopt -u nullglob
+    if [[ ! -f "${PYPI_SDIST}" || ${#wheels[@]} -eq 0 ]]; then
+        return 1
+    fi
+    PYPI_WHEEL="${wheels[0]}"
+    return 0
+}
+
 check_pypi_credentials() {
     if has_pypi_credentials; then
         load_pypi_credentials || true
@@ -374,14 +391,20 @@ run_tests() {
 }
 
 build_pypi_artifacts() {
-    local python_bin
+    local python_bin prefix version
     python_bin="$(ensure_release_tools)"
-    local dist_glob
-    dist_glob="$(pypi_dist_glob)"
+    prefix="$(pypi_dist_prefix)"
+    version="${VERSION:-$(get_version)}"
     log "Generando sdist y wheel en dist/..."
-    rm -f "${dist_glob}.tar.gz" "${dist_glob}.whl" 2>/dev/null || true
+    shopt -s nullglob
+    rm -f "dist/${prefix}-${version}.tar.gz" dist/${prefix}-${version}-*.whl 2>/dev/null || true
+    shopt -u nullglob
     "${python_bin}" -m build
-    ls -1 "${dist_glob}.tar.gz" "${dist_glob}.whl" >&2
+    pypi_find_artifacts || {
+        err "No se generaron artefactos PyPI en dist/."
+        return 1
+    }
+    ls -1 "${PYPI_SDIST}" "${PYPI_WHEEL}" >&2
 }
 
 upload_pypi() {
@@ -392,14 +415,12 @@ upload_pypi() {
     if [[ ! -x "${twine_bin}" ]]; then
         twine_bin="twine"
     fi
-    local dist_glob
-    dist_glob="$(pypi_dist_glob)"
-    if ! ls "${dist_glob}.tar.gz" "${dist_glob}.whl" >/dev/null 2>&1; then
+    if ! pypi_find_artifacts; then
         err "No hay artefactos PyPI en dist/. Ejecuta primero la opción PyPI o 'Todo'."
         return 1
     fi
     log "Subiendo a PyPI (producción)..."
-    if ! "${twine_bin}" upload "${dist_glob}.tar.gz" "${dist_glob}.whl"; then
+    if ! "${twine_bin}" upload "${PYPI_SDIST}" "${PYPI_WHEEL}"; then
         err "Falló la subida a PyPI (revisa token, nombre del paquete y versión)."
         return 1
     fi
@@ -459,9 +480,12 @@ ensure_git_tag() {
 collect_release_assets() {
     RELEASE_ASSETS=()
     local f
-    for f in dist/kps-*.AppImage "$(pypi_dist_glob).tar.gz" "$(pypi_dist_glob).whl"; do
+    for f in dist/kps-*.AppImage; do
         [[ -f "${f}" ]] && RELEASE_ASSETS+=("${f}")
     done
+    if pypi_find_artifacts; then
+        RELEASE_ASSETS+=( "${PYPI_SDIST}" "${PYPI_WHEEL}" )
+    fi
 }
 
 publish_github_release() {
