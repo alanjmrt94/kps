@@ -199,6 +199,7 @@ Requiere `pip install ".[dev]"` (o el script instala autopep8 / dev en el venv a
 
 * `gh` autenticado (`gh auth login`)
 * `PYPI_API_TOKEN` o `TWINE_PASSWORD` (token de [pypi.org](https://pypi.org/manage/account/token/))
+* o `~/.pypirc` con sección `[pypi]` (`username = __token__`, `password = pypi-...`)
 * Versión alineada en `utils/const.py` y `pyproject.toml`
 * Sección `## X.Y.Z` en `CHANGES.md` para las notas del release
 

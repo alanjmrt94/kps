@@ -13,6 +13,7 @@
 # Variables de entorno:
 #   PYPI_API_TOKEN  — token de PyPI (usuario twine: __token__)
 #   TWINE_USERNAME / TWINE_PASSWORD — alternativa a PYPI_API_TOKEN
+#   PYPIRC — ruta a .pypirc (por defecto: ~/.pypirc)
 #   KPS_SKIP_TESTS=1 — no ejecutar pytest antes de publicar (opción "todo")
 #   KPS_GITHUB_REPO — URL del repo (por defecto: gh repo view o alanjmrt94/kps)
 #   KPS_APPIMAGEHUB_DATA — nombre del archivo en data/ (por defecto: kps)
@@ -284,7 +285,28 @@ action_appimagehub() {
     submit_appimagehub_pr "${mode}"
 }
 
-check_pypi_credentials() {
+pypi_password_from_pypirc() {
+    local rc="${PYPIRC:-${HOME}/.pypirc}"
+    [[ -f "${rc}" ]] || return 1
+    awk '
+        /^\[pypi\]/ { in_pypi=1; next }
+        /^\[/ { in_pypi=0 }
+        in_pypi && /^[[:space:]]*password[[:space:]]*=/ {
+            sub(/^[^=]*=[[:space:]]*/, "")
+            gsub(/^[[:space:]]+|[[:space:]]+$/, "")
+            print
+            exit
+        }
+    ' "${rc}"
+}
+
+has_pypi_credentials() {
+    [[ -n "${PYPI_API_TOKEN:-}" || -n "${TWINE_PASSWORD:-}" ]] && return 0
+    [[ -n "$(pypi_password_from_pypirc 2>/dev/null || true)" ]] && return 0
+    return 1
+}
+
+load_pypi_credentials() {
     if [[ -n "${PYPI_API_TOKEN:-}" ]]; then
         export TWINE_USERNAME="${TWINE_USERNAME:-__token__}"
         export TWINE_PASSWORD="${TWINE_PASSWORD:-${PYPI_API_TOKEN}}"
@@ -294,8 +316,19 @@ check_pypi_credentials() {
         export TWINE_USERNAME="${TWINE_USERNAME:-__token__}"
         return 0
     fi
-    err "Define PYPI_API_TOKEN o TWINE_PASSWORD (token de PyPI)."
-    err "Crea uno en: https://pypi.org/manage/account/token/"
+    local pass
+    pass="$(pypi_password_from_pypirc)" || return 1
+    export TWINE_USERNAME="${TWINE_USERNAME:-__token__}"
+    export TWINE_PASSWORD="${pass}"
+}
+
+check_pypi_credentials() {
+    if has_pypi_credentials; then
+        load_pypi_credentials || true
+        return 0
+    fi
+    err "Define PYPI_API_TOKEN, TWINE_PASSWORD o ~/.pypirc ([pypi] password)."
+    err "Crea un token en: https://pypi.org/manage/account/token/"
     return 1
 }
 
@@ -506,7 +539,7 @@ action_all() {
     VERSION="$(get_version)"
     log "Publicación completa — versión ${VERSION}"
 
-    if [[ "${KPS_SKIP_TESTS}" != "1" ]]; then
+    if [[ "${KPS_SKIP_TESTS:-}" != "1" ]]; then
         if confirm "¿Ejecutar tests antes de publicar?"; then
             run_tests
         fi
@@ -548,10 +581,14 @@ action_verify() {
         warn "  GitHub CLI: no listo"
         ok=1
     fi
-    if [[ -n "${PYPI_API_TOKEN:-}" || -n "${TWINE_PASSWORD:-}" ]]; then
-        log "  Credenciales PyPI: definidas"
+    if has_pypi_credentials; then
+        if [[ -f "${PYPIRC:-${HOME}/.pypirc}" ]] && [[ -z "${PYPI_API_TOKEN:-}" && -z "${TWINE_PASSWORD:-}" ]]; then
+            log "  Credenciales PyPI: ~/.pypirc"
+        else
+            log "  Credenciales PyPI: variables de entorno"
+        fi
     else
-        warn "  Credenciales PyPI: falta PYPI_API_TOKEN o TWINE_PASSWORD"
+        warn "  Credenciales PyPI: falta PYPI_API_TOKEN, TWINE_PASSWORD o ~/.pypirc"
         ok=1
     fi
     if [[ "$(uname -s)" == "Linux" ]]; then
