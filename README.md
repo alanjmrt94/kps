@@ -1,5 +1,7 @@
 # kps
 
+[GitHub](https://github.com/alanjmrt94/kps) · [PyPI — `kps-idle`](https://pypi.org/project/kps-idle/) · [Releases](https://github.com/alanjmrt94/kps/releases)
+
 Keep moving the cursor if you are away to avoid inactivity.
 
 ## Features
