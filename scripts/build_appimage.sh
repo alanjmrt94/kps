@@ -93,6 +93,10 @@ assemble_appdir() {
     mkdir -p "${bundle_dest}" "${APPDIR}/usr/share/applications" "${APPDIR}/usr/share/metainfo"
 
     cp -a "${DIST_DIR}/kps/." "${bundle_dest}/"
+    # AppImageHub busca kps.png en cualquier */128x128/* y guarda todas las
+    # coincidencias en una sola variable. El árbol hicolor del bundle
+    # (PyInstaller) duplica el de usr/share/icons y el test aborta en readlink.
+    strip_bundled_hicolor "${bundle_dest}"
 
     cat > "${APPDIR}/AppRun" <<'EOF'
 #!/bin/sh
@@ -126,6 +130,37 @@ EOF
     else
         log "AVISO: falta assets/icons/linux/kps.png (256×256) para icono del AppImage."
     fi
+
+    assert_single_catalog_icon
+}
+
+strip_bundled_hicolor() {
+    local bundle_dest=$1
+    local rel found=0
+    for rel in \
+        "_internal/assets/icons/linux/hicolor" \
+        "assets/icons/linux/hicolor"
+    do
+        if [[ -d "${bundle_dest}/${rel}" ]]; then
+            log "Quitando iconos hicolor del bundle (${rel})."
+            rm -rf "${bundle_dest}/${rel}"
+            found=1
+        fi
+    done
+    if [[ "${found}" -eq 0 ]]; then
+        log "AVISO: el bundle no traía árbol hicolor."
+    fi
+}
+
+assert_single_catalog_icon() {
+    local matches count
+    matches="$(find "${APPDIR}" -name 'kps.png' -path '*/128x128/*' | sort)"
+    count="$(printf '%s\n' "${matches}" | grep -c . || true)"
+    if [[ "${count}" -ne 1 ]]; then
+        die "AppImageHub exige un único kps.png en */128x128/* (hay ${count}):
+${matches}"
+    fi
+    log "Icono de catálogo: ${matches}"
 }
 
 build_appimage() {

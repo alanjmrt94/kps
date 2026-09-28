@@ -1,5 +1,17 @@
 # Release notes
 
+## 2.0.6
+
+**AppImage válido para el catálogo AppImageHub.**
+
+### AppImage
+
+* El árbol hicolor del bundle PyInstaller ya no viaja dentro del AppImage; el menú usa solo `usr/share/icons`
+* AppImageHub encontraba dos `kps.png` de 128×128 y abortaba en `readlink`
+* El build comprueba que quede un único `kps.png` en `*/128x128/*`
+
+---
+
 ## 2.0.5
 
 **PyPI: paquete `kps-idle` (conflicto de nombre resuelto).**

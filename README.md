@@ -15,6 +15,10 @@ The program works in the background and waits only for inactivity to move the mo
 
 ## Latest changes
 
+Release **v2.0.6** — AppImage para AppImageHub:
+
+* Un solo `kps.png` de 128×128 dentro del AppImage (sin la copia del bundle PyInstaller)
+
 Release **v2.0.5** — PyPI `kps-idle`:
 
 * Paquete PyPI renombrado a **`kps-idle`** (`pip install kps-idle`; comando `kps`)
@@ -309,7 +313,7 @@ kps/
 
 See `.cursor/plans/kps_pending.plan.md` for the current roadmap.
 
-**v2.0.5** — PyPI como `kps-idle`. **v2.0.4** — Windows validado, CI test-windows OK. **v2.0.2** — docstrings y lint. **v2.0.1** — AppImage. Pendiente: prueba manual macOS.
+**v2.0.6** — AppImage con un solo icono 128×128. **v2.0.5** — PyPI como `kps-idle`. **v2.0.4** — Windows validado, CI test-windows OK. **v2.0.2** — docstrings y lint. **v2.0.1** — AppImage. Pendiente: prueba manual macOS.
 
 ## Older releases
 
