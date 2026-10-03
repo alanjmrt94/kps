@@ -15,6 +15,11 @@ The program works in the background and waits only for inactivity to move the mo
 
 ## Latest changes
 
+Release **v2.0.7** — AppImage Ubuntu 18.04–26.04:
+
+* Build en glibc 2.27 (Docker Ubuntu 18.04); runtime estático sin `libfuse2`
+* AppImageUpdate (`.zsync`); bandeja por defecto; un solo icono 128×128
+
 Release **v2.0.6** — AppImage para AppImageHub:
 
 * Un solo `kps.png` de 128×128 dentro del AppImage (sin la copia del bundle PyInstaller)
@@ -212,13 +217,13 @@ Además configura `/dev/uinput` vía udev (`scripts/udev-rules/40-uinput.rules`)
 |------------|-------|--------|-----------------|
 | Windows | `scripts\build_windows.bat` | `dist\kps.exe` | `assets/icons/kps.ico` |
 | macOS | `bash scripts/build_macos.sh` | `dist/kps.app` | `assets/icons/kps.icns` |
-| Linux | `./scripts/build_appimage.sh` | `dist/kps-*.AppImage` | `assets/icons/linux/kps.png` + `hicolor/` |
+| Linux | `./scripts/build_appimage.sh` | `dist/kps-*.AppImage` (+ `.zsync`) | `assets/icons/linux/kps.png` + `hicolor/` |
 
-**Suite de iconos:** coloca `assets/image_base.png` (y opcionalmente `assets/image_base.icns`) y ejecuta `./scripts/generate_icons.sh`. Verificar con `./scripts/verify_icons.sh`.
+**Suite de iconos:** ya está en `assets/icons/`. Comprobar con `./scripts/verify_icons.sh`.
 
-**Desarrollo** (con venv): `./run` · **AppImage** (sin Python): `./run-appimage` (ofrece instalar `libfuse2` si falta)
+**Desarrollo** (con venv): `./run` · **AppImage** (sin Python): `./run-appimage` o `./dist/kps-*.AppImage`
 
-Si ejecutas `dist/kps-*.AppImage` a mano y aparece `libfuse.so.2`, usa `./run-appimage` o `sudo apt install libfuse2`.
+El AppImage se construye en Ubuntu 18.04 (glibc 2.27) vía Docker cuando el host es más nuevo, para cubrir Ubuntu 18.04–26.04. Incluye runtime estático (no necesita `libfuse2`) y, al publicarlo, el `.zsync` para AppImageUpdate.
 
 Tras `install.bat` / `install-macos.sh` / `install.sh`, ejecuta el script de build de tu plataforma. En macOS puede hacer falta **Accesibilidad** para `pyautogui`. En Linux el AppImage aún requiere **gdbus** y permisos **uinput** en el host (ver abajo).
 
@@ -301,19 +306,14 @@ kps/
 │   ├── kps.spec           # PyInstaller Windows
 │   ├── kps-macos.spec     # PyInstaller macOS
 │   ├── kps-linux.spec     # PyInstaller Linux (AppImage)
-│   ├── generate_icons.sh  # Generar suite de iconos
-│   ├── verify_icons.sh    # Verificar iconos
+│   ├── verify_icons.sh    # Verificar iconos antes de empaquetar
 │   ├── requirements*.txt
 │   └── udev-rules/
 │       └── 40-uinput.rules
 └── utils/                 # Core modules
 ```
 
-## Development plan
-
-See `.cursor/plans/kps_pending.plan.md` for the current roadmap.
-
-**v2.0.6** — AppImage con un solo icono 128×128. **v2.0.5** — PyPI como `kps-idle`. **v2.0.4** — Windows validado, CI test-windows OK. **v2.0.2** — docstrings y lint. **v2.0.1** — AppImage. Pendiente: prueba manual macOS.
+**v2.0.7** — AppImage Ubuntu 18–26, sin libfuse2, AppImageUpdate y bandeja. **v2.0.6** — icono 128×128 único. **v2.0.5** — PyPI `kps-idle`. Pendiente: prueba manual macOS.
 
 ## Older releases
 

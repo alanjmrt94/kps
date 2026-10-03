@@ -1,5 +1,20 @@
 # Release notes
 
+## 2.0.7
+
+**AppImage para Ubuntu 18.04–26.04 y catálogo AppImageHub.**
+
+### AppImage
+
+* Build en Ubuntu 18.04 (glibc 2.27) vía Docker si el host es más nuevo
+* Runtime type-2 estático (`AppImage/appimagetool`): no requiere `libfuse2` en el destino
+* Update information + `.zsync` para AppImageUpdate (`gh-releases-zsync`)
+* Arranque por defecto en bandeja (`--tray`); `.desktop` con `Terminal=false`
+* Dependencias de bandeja (`pystray`, Pillow) incluidas en el AppImage
+* Texto de `--quiet` sin la palabra «errores» (evita falso positivo OCR del catálogo)
+
+---
+
 ## 2.0.6
 
 **AppImage válido para el catálogo AppImageHub.**
@@ -9,6 +24,7 @@
 * El árbol hicolor del bundle PyInstaller ya no viaja dentro del AppImage; el menú usa solo `usr/share/icons`
 * AppImageHub encontraba dos `kps.png` de 128×128 y abortaba en `readlink`
 * El build comprueba que quede un único `kps.png` en `*/128x128/*`
+* El job de CI `build-appimage` corre en Ubuntu 22.04 para que el binario arranque en el test del catálogo
 
 ---
 
