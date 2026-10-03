@@ -120,3 +120,91 @@ def test_file_defaults_merge(sample_config: Path) -> None:
     assert defaults["away_time"] == 15
     assert defaults["verbose"] is True
     assert defaults["daemon"] is False
+
+
+def test_parse_profiles_minimal() -> None:
+    """Comprueba parse profiles minimal."""
+    text = """
+[kps]
+profile = "work"
+[profiles.work]
+away_time = 8
+pulse = "both"
+start = "09:00"
+end = "18:00"
+"""
+    data = config_file._parse_kps_section_minimal(text)
+    assert data["kps"]["profile"] == "work"
+    assert data["profiles"]["work"]["away_time"] == 8
+    assert data["profiles"]["work"]["start"] == "09:00"
+
+
+def test_apply_profile_overrides(tmp_path: Path) -> None:
+    """Comprueba apply profile overrides."""
+    cfg = tmp_path / "config.toml"
+    cfg.write_text(
+        """
+[kps]
+away_time = 15
+profile = "night"
+[profiles.night]
+away_time = 4
+pulse = "keyboard"
+start = "22:00"
+end = "07:00"
+""".strip(),
+        encoding="utf-8",
+    )
+    loaded = config_file.load_user_config(cfg)
+    assert loaded["away_time"] == 4
+    assert loaded["pulse"] == "keyboard"
+    assert loaded["schedule_start"] == "22:00"
+    assert loaded["profile"] == "night"
+
+
+def test_apply_profile_missing_name() -> None:
+    """Comprueba apply profile missing name."""
+    merged = config_file.apply_profile({"away_time": 1}, {}, "nope")
+    assert merged["profile"] == "nope"
+    assert merged["away_time"] == 1
+
+
+def test_coerce_profiles_invalid() -> None:
+    """Comprueba coerce profiles invalid."""
+    assert not config_file._coerce_profiles("x")
+    assert not config_file._coerce_profiles({"a": 1})
+
+
+def test_load_config_invalid_kps_section(tmp_path: Path) -> None:
+    """Comprueba load config invalid kps section."""
+    cfg = tmp_path / "bad.toml"
+    cfg.write_text("x = 1\n", encoding="utf-8")
+    with patch.object(config_file, "_parse_toml", return_value={"kps": "no"}):
+        doc = config_file.load_config_document(cfg)
+    assert not doc["kps"]
+
+
+def test_cli_profile_from_file(tmp_path: Path) -> None:
+    """Comprueba cli profile from file."""
+    from utils.cli import parse_args
+
+    cfg = tmp_path / "config.toml"
+    cfg.write_text(
+        """
+[kps]
+away_time = 2
+[profiles.work]
+away_time = 9
+pulse = "both"
+""".strip(),
+        encoding="utf-8",
+    )
+    config = parse_args(["--config", str(cfg), "--profile", "work"])
+    assert config.away_time == 9
+    assert config.pulse == "both"
+    assert config.profile == "work"
+
+
+def test_resolve_pulse_inhibit_only() -> None:
+    """Comprueba resolve pulse inhibit only."""
+    assert config_file.resolve_pulse({"inhibit_only": True}) == "inhibit"

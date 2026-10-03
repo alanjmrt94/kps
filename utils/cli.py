@@ -9,7 +9,15 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from utils.config_file import default_config_path, file_defaults
-from utils.const import DEFAULT_AWAY_TIME, DEFAULT_POLL_INTERVAL
+from utils.const import (
+    DEFAULT_AWAY_TIME,
+    DEFAULT_POLL_INTERVAL,
+    PULSE_BOTH,
+    PULSE_INHIBIT,
+    PULSE_KEYBOARD,
+    PULSE_MODES,
+    PULSE_MOUSE,
+)
 from utils.version import App_version
 
 
@@ -28,8 +36,15 @@ class KpsConfig:  # pylint: disable=too-many-instance-attributes
     pid_file: Path | None = None
     hotkey: str | None = None
     keyboard_pulse: bool = False
+    keyboard_only: bool = False
+    pulse: str = PULSE_MOUSE
     tray: bool = False
     config_path: Path | None = None
+    command: str = "run"
+    autostart_action: str = "status"
+    profile: str | None = None
+    schedule_start: str | None = None
+    schedule_end: str | None = None
 
 
 def build_parser(defaults: dict | None = None) -> argparse.ArgumentParser:
@@ -41,6 +56,25 @@ def build_parser(defaults: dict | None = None) -> argparse.ArgumentParser:
             "El programa espera inactividad y mueve el ratón en segundo plano."
         ),
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        epilog=(
+            "Subcomandos: kps doctor · kps autostart enable|disable|status. "
+            "Pulso: --pulse mouse|keyboard|both|inhibit "
+            "(o --keyboard / --keyboard-only / --inhibit-only)."
+        ),
+    )
+    parser.add_argument(
+        "command",
+        nargs="?",
+        default="run",
+        choices=("run", "doctor", "autostart"),
+        help="Acción: ejecutar, diagnosticar o configurar arranque",
+    )
+    parser.add_argument(
+        "autostart_action",
+        nargs="?",
+        default="status",
+        choices=("enable", "disable", "status"),
+        help="Acción de autostart (solo con 'autostart')",
     )
     parser.add_argument(
         "-t",
@@ -97,6 +131,12 @@ def build_parser(defaults: dict | None = None) -> argparse.ArgumentParser:
         help=f"Archivo de configuración (default: {default_config_path()})",
     )
     parser.add_argument(
+        "--profile",
+        default=cfg.get("profile"),
+        metavar="NAME",
+        help="Perfil TOML (p. ej. work, night)",
+    )
+    parser.add_argument(
         "--log-file",
         type=Path,
         default=cfg.get("log_file"),
@@ -117,10 +157,28 @@ def build_parser(defaults: dict | None = None) -> argparse.ArgumentParser:
         help="Tecla de cierre (F1–F12; Linux/macOS requiere pynput)",
     )
     parser.add_argument(
+        "--pulse",
+        choices=PULSE_MODES,
+        default=cfg.get("pulse", PULSE_MOUSE),
+        help="Ratón, teclado, ambos, o solo inhibir sleep/idle del SO",
+    )
+    parser.add_argument(
         "--keyboard",
         action="store_true",
-        default=cfg.get("keyboard_pulse", False),
-        help="Pulso de Shift además del ratón (desactivado por defecto)",
+        default=False,
+        help="Pulso de Shift además del ratón (equivale a --pulse both)",
+    )
+    parser.add_argument(
+        "--keyboard-only",
+        action="store_true",
+        default=False,
+        help="Solo pulso de teclado, sin mover el cursor",
+    )
+    parser.add_argument(
+        "--inhibit-only",
+        action="store_true",
+        default=False,
+        help="Solo inhibir idle/sleep del SO (sin ratón ni teclado)",
     )
     parser.add_argument(
         "--tray",
@@ -131,27 +189,50 @@ def build_parser(defaults: dict | None = None) -> argparse.ArgumentParser:
     return parser
 
 
+def _pulse_from_args(args: argparse.Namespace, raw_argv: list[str]) -> str:
+    """Prioridad: aliases CLI, luego --pulse / config."""
+    if "--inhibit-only" in raw_argv:
+        return PULSE_INHIBIT
+    if "--keyboard-only" in raw_argv:
+        return PULSE_KEYBOARD
+    if "--keyboard" in raw_argv:
+        return PULSE_BOTH
+    return str(args.pulse)
+
+
 def parse_args(argv: list[str] | None = None) -> KpsConfig:
     """Parsea argumentos, fusiona config TOML y devuelve KpsConfig."""
     raw_argv = list(argv if argv is not None else sys.argv[1:])
 
-    # Primera pasada para localizar --config
     pre = argparse.ArgumentParser(add_help=False)
     pre.add_argument("--config", type=Path, default=None)
+    pre.add_argument("--profile", default=None)
     pre_args, _ = pre.parse_known_args(raw_argv)
     config_path = pre_args.config or default_config_path()
-    defaults = file_defaults(config_path)
+    defaults = file_defaults(config_path, profile=pre_args.profile)
 
     args = build_parser(defaults).parse_args(raw_argv)
 
-    if args.time < 1:
-        build_parser(defaults).error("El tiempo de inactividad debe ser al menos 1 segundo.")
-    if args.poll < 1:
-        build_parser(defaults).error("El intervalo de sondeo debe ser al menos 1 segundo.")
-    if args.verbose and args.quiet:
-        build_parser(defaults).error("No se pueden usar --verbose y --quiet a la vez.")
+    if args.command == "run":
+        if args.time < 1:
+            build_parser(defaults).error("El tiempo de inactividad debe ser al menos 1 segundo.")
+        if args.poll < 1:
+            build_parser(defaults).error("El intervalo de sondeo debe ser al menos 1 segundo.")
+        if args.verbose and args.quiet:
+            build_parser(defaults).error("No se pueden usar --verbose y --quiet a la vez.")
+        pulse_aliases = [
+            flag
+            for flag in ("--keyboard", "--keyboard-only", "--inhibit-only")
+            if flag in raw_argv
+        ]
+        if len(pulse_aliases) > 1:
+            build_parser(defaults).error(
+                "Usá solo uno de --keyboard, --keyboard-only o --inhibit-only."
+            )
 
     hotkey = args.hotkey.strip() if args.hotkey else None
+    pulse = _pulse_from_args(args, raw_argv)
+    profile = args.profile or defaults.get("profile")
 
     return KpsConfig(
         away_time=args.time,
@@ -164,9 +245,16 @@ def parse_args(argv: list[str] | None = None) -> KpsConfig:
         log_file=args.log_file,
         pid_file=args.pid_file,
         hotkey=hotkey,
-        keyboard_pulse=args.keyboard,
+        keyboard_pulse=pulse == PULSE_BOTH,
+        keyboard_only=pulse == PULSE_KEYBOARD,
+        pulse=pulse,
         tray=args.tray,
         config_path=config_path if config_path.is_file() else None,
+        command=args.command,
+        autostart_action=args.autostart_action,
+        profile=profile,
+        schedule_start=defaults.get("schedule_start"),
+        schedule_end=defaults.get("schedule_end"),
     )
 
 
@@ -198,11 +286,19 @@ def print_banner(log: logging.Logger, config: KpsConfig) -> None:
     log.info("kps v%s", App_version())
     if config.config_path:
         log.info("Config: %s", config.config_path)
+    if config.profile:
+        log.info("Perfil: %s", config.profile)
+    if config.schedule_start or config.schedule_end:
+        log.info("Horario: %s–%s", config.schedule_start or "*", config.schedule_end or "*")
     if config.dry_run:
         log.info("Modo dry-run: no se moverá el ratón.")
     if config.daemon and config.foreground:
         log.info("Proceso en segundo plano.")
-    if config.keyboard_pulse:
-        log.info("Pulso de teclado activado (además del ratón).")
+    if config.pulse == PULSE_KEYBOARD:
+        log.info("Pulso: solo teclado (sin mover el cursor).")
+    elif config.pulse == PULSE_BOTH:
+        log.info("Pulso: ratón y teclado en paralelo.")
+    elif config.pulse == PULSE_INHIBIT:
+        log.info("Modo inhibit: solo idle/sleep del SO (sin ratón ni teclado).")
     if config.tray:
         log.info("Modo bandeja del sistema.")

@@ -20,7 +20,7 @@ import kps
 def test_main_success(mock_parse, mock_log_setup, _mock_setup, _mock_loop) -> None:
     """Comprueba main success."""
     config = MagicMock(
-        daemon=False, foreground=False, pid_file=None, hotkey=None, tray=False
+        command="run", daemon=False, foreground=False, pid_file=None, hotkey=None, tray=False
     )
     mock_parse.return_value = config
     mock_log_setup.return_value = MagicMock()
@@ -34,6 +34,7 @@ def test_main_success(mock_parse, mock_log_setup, _mock_setup, _mock_loop) -> No
 def test_main_daemon_spawns(mock_parse, mock_spawn) -> None:
     """Comprueba main daemon spawns."""
     config = MagicMock(
+        command="run",
         daemon=True,
         foreground=False,
         log_file=None,
@@ -55,7 +56,7 @@ def test_main_daemon_spawns(mock_parse, mock_spawn) -> None:
 def test_main_runtime_error(mock_parse, mock_log_setup, _setup, _loop, _pid) -> None:
     """Comprueba main runtime error."""
     config = MagicMock(
-        daemon=False, foreground=False, pid_file=MagicMock(), hotkey=None, tray=False
+        command="run", daemon=False, foreground=False, pid_file=MagicMock(), hotkey=None, tray=False
     )
     mock_parse.return_value = config
     mock_log_setup.return_value = MagicMock()
@@ -71,7 +72,7 @@ def test_main_runtime_error(mock_parse, mock_log_setup, _setup, _loop, _pid) -> 
 def test_main_keyboard_interrupt(mock_parse, mock_log_setup, _setup, _loop) -> None:
     """Comprueba main keyboard interrupt."""
     config = MagicMock(
-        daemon=False, foreground=False, pid_file=None, hotkey=None, tray=False
+        command="run", daemon=False, foreground=False, pid_file=None, hotkey=None, tray=False
     )
     mock_parse.return_value = config
     mock_log_setup.return_value = MagicMock()
@@ -90,12 +91,12 @@ def test_main_tray_mode(
 ) -> None:
     """Comprueba main tray mode."""
     config = MagicMock(
-        daemon=False, foreground=False, pid_file=None, hotkey=None, tray=True
+        command="run", daemon=False, foreground=False, pid_file=None, hotkey=None, tray=True
     )
     mock_parse.return_value = config
     mock_log_setup.return_value = MagicMock()
 
-    def _invoke_worker(_title: str, _on_quit: object, worker: object) -> None:
+    def _invoke_worker(_title: str, _on_quit: object, worker: object, **_kwargs: object) -> None:
         worker()
 
     mock_tray.side_effect = _invoke_worker
@@ -116,13 +117,13 @@ def test_main_tray_worker_runtime_error(
 ) -> None:
     """Comprueba main tray worker runtime error."""
     config = MagicMock(
-        daemon=False, foreground=False, pid_file=None, hotkey=None, tray=True
+        command="run", daemon=False, foreground=False, pid_file=None, hotkey=None, tray=True
     )
     mock_parse.return_value = config
     log = MagicMock()
     mock_log_setup.return_value = log
 
-    def _invoke_worker(_title: str, _on_quit: object, worker: object) -> None:
+    def _invoke_worker(_title: str, _on_quit: object, worker: object, **_kwargs: object) -> None:
         worker()
 
     mock_tray.side_effect = _invoke_worker
@@ -136,6 +137,7 @@ def test_kps_main_module() -> None:
     """Comprueba kps main module."""
     kps_path = Path(kps.__file__)
     config = MagicMock(
+        command="run",
         daemon=False,
         foreground=False,
         pid_file=None,
@@ -153,3 +155,25 @@ def test_kps_main_module() -> None:
         with pytest.raises(SystemExit) as exc:
             runpy.run_path(str(kps_path), run_name="__main__")
         assert exc.value.code == 0
+
+
+@patch("utils.doctor.run_doctor", return_value=0)
+@patch("kps.parse_args")
+def test_main_doctor(mock_parse, mock_doctor) -> None:
+    """Comprueba main doctor."""
+    mock_parse.return_value = MagicMock(command="doctor")
+    with pytest.raises(SystemExit) as exc:
+        kps.main()
+    assert exc.value.code == 0
+    mock_doctor.assert_called_once()
+
+
+@patch("utils.autostart.run_autostart", return_value=0)
+@patch("kps.parse_args")
+def test_main_autostart(mock_parse, mock_auto) -> None:
+    """Comprueba main autostart."""
+    mock_parse.return_value = MagicMock(command="autostart", autostart_action="enable")
+    with pytest.raises(SystemExit) as exc:
+        kps.main()
+    assert exc.value.code == 0
+    mock_auto.assert_called_once_with("enable")

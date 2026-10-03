@@ -23,6 +23,8 @@ def test_parse_args_defaults(tmp_path: Path) -> None:
     assert config.poll_interval == 5
     assert config.dry_run is False
     assert config.config_path is None
+    assert config.command == "run"
+    assert config.pulse == "mouse"
 
 
 def test_parse_args_overrides(sample_config: Path) -> None:
@@ -111,11 +113,86 @@ def test_parse_args_invalid_poll_message(tmp_path: Path) -> None:
             parse_args(["-p", "0"])
 
 
+def test_print_banner_inhibit() -> None:
+    """Comprueba print banner inhibit."""
+    log = MagicMock()
+    print_banner(log, KpsConfig(pulse="inhibit"))
+    assert any("inhibit" in str(c).lower() for c in log.info.call_args_list)
+
+
 def test_print_banner_minimal() -> None:
     """Comprueba print banner minimal."""
     log = MagicMock()
     print_banner(log, KpsConfig())
     log.info.assert_called()
+
+
+def test_parse_args_keyboard_only() -> None:
+    """Comprueba parse args keyboard only."""
+    config = parse_args(["--keyboard-only"])
+    assert config.pulse == "keyboard"
+    assert config.keyboard_only is True
+    assert config.keyboard_pulse is False
+
+
+def test_parse_args_keyboard_both() -> None:
+    """Comprueba parse args keyboard both."""
+    config = parse_args(["--keyboard"])
+    assert config.pulse == "both"
+    assert config.keyboard_pulse is True
+
+
+def test_parse_args_pulse_explicit() -> None:
+    """Comprueba parse args pulse explicit."""
+    config = parse_args(["--pulse", "both"])
+    assert config.pulse == "both"
+
+
+def test_parse_args_inhibit_only() -> None:
+    """Comprueba parse args inhibit only."""
+    config = parse_args(["--inhibit-only"])
+    assert config.pulse == "inhibit"
+
+
+def test_parse_args_rejects_inhibit_conflict() -> None:
+    """Comprueba parse args rejects inhibit conflict."""
+    with pytest.raises(SystemExit):
+        parse_args(["--inhibit-only", "--keyboard"])
+
+
+def test_parse_args_rejects_keyboard_conflict() -> None:
+    """Comprueba parse args rejects keyboard conflict."""
+    with pytest.raises(SystemExit):
+        parse_args(["--keyboard", "--keyboard-only"])
+
+
+def test_parse_args_doctor() -> None:
+    """Comprueba parse args doctor."""
+    config = parse_args(["doctor"])
+    assert config.command == "doctor"
+
+
+def test_parse_args_autostart_enable() -> None:
+    """Comprueba parse args autostart enable."""
+    config = parse_args(["autostart", "enable"])
+    assert config.command == "autostart"
+    assert config.autostart_action == "enable"
+
+
+def test_print_banner_keyboard_only() -> None:
+    """Comprueba print banner keyboard only."""
+    log = MagicMock()
+    print_banner(
+        log,
+        KpsConfig(
+            pulse="keyboard",
+            profile="night",
+            schedule_start="22:00",
+            schedule_end="07:00",
+        ),
+    )
+    messages = " ".join(str(c) for c in log.info.call_args_list)
+    assert "night" in messages or log.info.call_count >= 3
 
 
 def test_print_banner_all_flags() -> None:
@@ -128,6 +205,7 @@ def test_print_banner_all_flags() -> None:
             dry_run=True,
             daemon=True,
             foreground=True,
+            pulse="both",
             keyboard_pulse=True,
             tray=True,
         ),

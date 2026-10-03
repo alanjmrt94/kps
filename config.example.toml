@@ -1,5 +1,7 @@
 # Copia a ~/.config/kps/config.toml (Linux) o %APPDATA%\kps\config.toml (Windows)
-# La CLI tiene prioridad sobre estos valores.
+# La CLI tiene prioridad. Docs: README.md (en) · README-es.md (es)
+# pulse: mouse | keyboard | both | inhibit
+# Perfiles: kps --profile work  (o profile = "work" aquí)
 
 [kps]
 away_time = 2
@@ -7,9 +9,25 @@ poll_interval = 5
 verbose = false
 quiet = false
 dry_run = false
+# profile = "work"
+# pulse = "mouse"          # mouse | keyboard | both | inhibit
+# inhibit_only = false     # alias de pulse = "inhibit"
 # daemon = false
 # log_file = "/tmp/kps.log"
 # pid_file = "/tmp/kps.pid"
 # hotkey = "F12"
-# keyboard_pulse = false
+# keyboard_pulse = false   # alias de pulse = "both"
+# keyboard_only = false    # alias de pulse = "keyboard"
 # tray = false
+
+[profiles.work]
+away_time = 2
+pulse = "both"
+start = "09:00"
+end = "18:00"
+
+[profiles.night]
+away_time = 5
+pulse = "keyboard"
+start = "22:00"
+end = "07:00"

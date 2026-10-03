@@ -10,11 +10,18 @@ else:
     class StrEnum(str, Enum):  # type: ignore[misc]
         """Compatibilidad StrEnum para Python 3.10."""
 
-Version = "2.0.7"  # pylint: disable=invalid-name  # Mayor.minor.patch; usado por App_version()
+Version = "2.2.0"  # pylint: disable=invalid-name  # Mayor.minor.patch; usado por App_version()
 
 # Tiempos por defecto (segundos)
 DEFAULT_AWAY_TIME = 2
 DEFAULT_POLL_INTERVAL = 5
+
+# Pulso de presencia: ratón, teclado o ambos en paralelo
+PULSE_MOUSE = "mouse"
+PULSE_KEYBOARD = "keyboard"
+PULSE_BOTH = "both"
+PULSE_INHIBIT = "inhibit"
+PULSE_MODES = (PULSE_MOUSE, PULSE_KEYBOARD, PULSE_BOTH, PULSE_INHIBIT)
 
 # Configuración persistente
 CONFIG_FILENAME = "config.toml"

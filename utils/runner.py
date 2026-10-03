@@ -14,11 +14,18 @@ from utils.const import (
     MOVE_SCRIPT_LINUX,
     MOVE_SCRIPT_MACOS,
     MOVE_SCRIPT_WINDOWS,
+    PULSE_BOTH,
+    PULSE_INHIBIT,
+    PULSE_KEYBOARD,
+    PULSE_MOUSE,
     OsType,
 )
+from utils.inhibit import IdleInhibit
 from utils.install import project_root
 from utils.keyboard_pulse import pulse_shift
+from utils.schedule import schedule_allows
 from utils.shutdown import ShutdownController
+from utils.status import PresenceStatus, StatusHub
 
 log = logging.getLogger("kps.runner")
 
@@ -77,52 +84,111 @@ def interruptible_sleep(seconds: float, shutdown: ShutdownController) -> bool:
     return shutdown.requested
 
 
-def run_loop(config: KpsConfig, shutdown: ShutdownController | None = None) -> None:
+def emit_presence(config: KpsConfig) -> None:
+    """Emite el pulso configurado (ratón, teclado o ambos)."""
+    if config.pulse == PULSE_INHIBIT:
+        return
+    if config.pulse in (PULSE_MOUSE, PULSE_BOTH):
+        run_move()
+    if config.pulse in (PULSE_KEYBOARD, PULSE_BOTH):
+        pulse_shift()
+
+
+def _sync_inhibit(config: KpsConfig, inhibitor: IdleInhibit, paused: bool) -> None:
+    """Activa o suelta la inhibición según horario y modo."""
+    if config.pulse != PULSE_INHIBIT or config.dry_run:
+        if inhibitor.running:
+            inhibitor.stop()
+        return
+    if paused:
+        inhibitor.stop()
+        return
+    if not inhibitor.running:
+        if inhibitor.start():
+            log.info("Inhibición idle/sleep del SO activa.")
+        else:
+            log.warning("No se pudo inhibir idle/sleep del SO.")
+
+
+def run_loop(  # pylint: disable=too-many-branches
+    config: KpsConfig,
+    shutdown: ShutdownController | None = None,
+    status: StatusHub | None = None,
+) -> None:
     """
-    Bucle principal: mueve el cursor tras ``away_time`` segundos de inactividad.
+    Bucle principal: pulso de presencia tras ``away_time`` segundos de inactividad.
 
     Import tardío de Monitor: requiere deps del venv tras setup_environment().
     """
     from utils.idle import Monitor  # pylint: disable=import-outside-toplevel
 
     ctrl = shutdown or ShutdownController()
+    hub = status or StatusHub()
+    inhibitor = IdleInhibit()
+    monitor_ok = Monitor.is_available()
 
-    if not Monitor.is_available():
+    if config.pulse != PULSE_INHIBIT and not monitor_ok:
         log.error("Monitor de inactividad no disponible en esta plataforma.")
         sys.exit(1)
 
     log.info(
-        "Mover el ratón tras %s s de inactividad (sondeo cada %s s).",
+        "Presencia tras %s s de inactividad (sondeo cada %s s, pulso=%s).",
         config.away_time,
         config.poll_interval,
+        config.pulse,
     )
 
-    while not ctrl.requested:
-        seconds = Monitor.get_idle_sec()
-        if seconds > config.away_time:
-            if config.dry_run:
-                log.info(
-                    "%s — Inactividad %s s (> %s s). Dry-run: no se mueve el ratón.",
-                    now_timestamp(),
-                    seconds,
-                    config.away_time,
-                )
+    try:
+        while not ctrl.requested:
+            paused = not schedule_allows(config.schedule_start, config.schedule_end)
+            _sync_inhibit(config, inhibitor, paused)
+            if paused:
+                hub.set(PresenceStatus.PAUSED)
+                log.debug("%s — Fuera de horario del perfil; pausado.", now_timestamp())
+                if interruptible_sleep(config.poll_interval, ctrl):
+                    break
+                continue
+
+            if not monitor_ok:
+                hub.set(PresenceStatus.AWAY)
+                if interruptible_sleep(config.poll_interval, ctrl):
+                    break
+                continue
+
+            seconds = Monitor.get_idle_sec()
+            if seconds > config.away_time:
+                hub.set(PresenceStatus.AWAY)
+                if config.dry_run:
+                    log.info(
+                        "%s — Inactividad %s s (> %s s). Dry-run: sin pulso.",
+                        now_timestamp(),
+                        seconds,
+                        config.away_time,
+                    )
+                elif config.pulse == PULSE_INHIBIT:
+                    log.debug(
+                        "%s — Inactividad %s s; inhibit activo (sin pulso).",
+                        now_timestamp(),
+                        seconds,
+                    )
+                else:
+                    log.info(
+                        "%s — Inactividad %s s (> %s s). Pulso (%s)...",
+                        now_timestamp(),
+                        seconds,
+                        config.away_time,
+                        config.pulse,
+                    )
+                    emit_presence(config)
+                if interruptible_sleep(config.poll_interval, ctrl):
+                    break
             else:
-                log.info(
-                    "%s — Inactividad %s s (> %s s). Moviendo ratón...",
-                    now_timestamp(),
-                    seconds,
-                    config.away_time,
-                )
-                run_move()
-                if config.keyboard_pulse:
-                    pulse_shift()
-            if interruptible_sleep(config.poll_interval, ctrl):
-                break
-        else:
-            log.debug("%s — Actividad detectada (%s s idle)", now_timestamp(), seconds)
-            if interruptible_sleep(config.poll_interval, ctrl):
-                break
+                hub.set(PresenceStatus.ACTIVE)
+                log.debug("%s — Actividad detectada (%s s idle)", now_timestamp(), seconds)
+                if interruptible_sleep(config.poll_interval, ctrl):
+                    break
+    finally:
+        inhibitor.stop()
 
     reason = ctrl.reason or "señal de cierre"
     log.info("Detenido (%s).", reason)

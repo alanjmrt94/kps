@@ -14,7 +14,14 @@ from tests.helpers import linux_uinput_modules
 import utils.runner as runner
 from utils.cli import KpsConfig
 from utils.const import MOVE_SCRIPT_LINUX, MOVE_SCRIPT_MACOS, MOVE_SCRIPT_WINDOWS, OsType
-from utils.runner import interruptible_sleep, now_timestamp, run_loop, run_move
+from utils.runner import (
+    _sync_inhibit,
+    emit_presence,
+    interruptible_sleep,
+    now_timestamp,
+    run_loop,
+    run_move,
+)
 from utils.shutdown import ShutdownController
 
 _FAKE_ROOT = Path("fake", "project", "root")
@@ -206,7 +213,7 @@ def test_run_loop_keyboard_pulse(
     mock_monitor.is_available.return_value = True
     mock_monitor.get_idle_sec.return_value = 99
     ctrl = ShutdownController()
-    run_loop(KpsConfig(away_time=2, keyboard_pulse=True), ctrl)
+    run_loop(KpsConfig(away_time=2, pulse="both"), ctrl)
     mock_move.assert_called_once()
     mock_pulse.assert_called_once()
 
@@ -241,3 +248,132 @@ def test_run_loop_move_then_shutdown(
     ctrl = ShutdownController()
     run_loop(KpsConfig(away_time=2, poll_interval=1), ctrl)
     assert mock_move.called
+
+
+@patch("utils.idle.Monitor")
+@patch("utils.runner.pulse_shift")
+@patch("utils.runner.run_move")
+@patch("utils.runner.interruptible_sleep", return_value=True)
+def test_run_loop_keyboard_only(
+    _sleep: MagicMock,
+    mock_move: MagicMock,
+    mock_pulse: MagicMock,
+    mock_monitor: MagicMock,
+) -> None:
+    """Comprueba run loop keyboard only."""
+    mock_monitor.is_available.return_value = True
+    mock_monitor.get_idle_sec.return_value = 99
+    ctrl = ShutdownController()
+    run_loop(KpsConfig(away_time=2, pulse="keyboard"), ctrl)
+    mock_move.assert_not_called()
+    mock_pulse.assert_called_once()
+
+
+@patch("utils.idle.Monitor")
+@patch("utils.runner.run_move")
+@patch("utils.runner.interruptible_sleep", return_value=True)
+@patch("utils.runner.schedule_allows", return_value=False)
+def test_run_loop_paused_outside_schedule(
+    _sched: MagicMock,
+    _sleep: MagicMock,
+    mock_move: MagicMock,
+    mock_monitor: MagicMock,
+) -> None:
+    """Comprueba run loop paused outside schedule."""
+    mock_monitor.is_available.return_value = True
+    mock_monitor.get_idle_sec.return_value = 99
+    ctrl = ShutdownController()
+    run_loop(KpsConfig(away_time=2, schedule_start="09:00", schedule_end="18:00"), ctrl)
+    mock_move.assert_not_called()
+
+
+@patch("utils.idle.Monitor")
+@patch("utils.runner.run_move")
+@patch("utils.runner.interruptible_sleep", return_value=True)
+@patch("utils.runner.IdleInhibit")
+def test_run_loop_inhibit_only_no_move(
+    mock_inhibit_cls: MagicMock,
+    _sleep: MagicMock,
+    mock_move: MagicMock,
+    mock_monitor: MagicMock,
+) -> None:
+    """Comprueba run loop inhibit only no move."""
+    mock_monitor.is_available.return_value = True
+    mock_monitor.get_idle_sec.return_value = 99
+    inhibitor = MagicMock()
+    inhibitor.running = False
+    inhibitor.start.return_value = True
+    mock_inhibit_cls.return_value = inhibitor
+    ctrl = ShutdownController()
+    run_loop(KpsConfig(away_time=2, pulse="inhibit"), ctrl)
+    mock_move.assert_not_called()
+    inhibitor.start.assert_called()
+    inhibitor.stop.assert_called()
+
+
+@patch("utils.idle.Monitor")
+@patch("utils.runner.interruptible_sleep", return_value=True)
+@patch("utils.runner.IdleInhibit")
+def test_run_loop_inhibit_without_monitor(
+    mock_inhibit_cls: MagicMock,
+    _sleep: MagicMock,
+    mock_monitor: MagicMock,
+) -> None:
+    """Comprueba run loop inhibit without monitor."""
+    mock_monitor.is_available.return_value = False
+    inhibitor = MagicMock()
+    inhibitor.running = False
+    inhibitor.start.return_value = True
+    mock_inhibit_cls.return_value = inhibitor
+    run_loop(KpsConfig(pulse="inhibit"), ShutdownController())
+    inhibitor.start.assert_called()
+
+
+def test_emit_presence_inhibit_skips() -> None:
+    """Comprueba emit presence inhibit skips."""
+    with (
+        patch("utils.runner.run_move") as mock_move,
+        patch("utils.runner.pulse_shift") as mock_pulse,
+    ):
+        emit_presence(KpsConfig(pulse="inhibit"))
+    mock_move.assert_not_called()
+    mock_pulse.assert_not_called()
+
+
+def test_sync_inhibit_stops_when_paused_or_other_mode() -> None:
+    """Comprueba sync inhibit stops when paused or other mode."""
+    inhibitor = MagicMock()
+    inhibitor.running = True
+    _sync_inhibit(KpsConfig(pulse="mouse"), inhibitor, paused=False)
+    inhibitor.stop.assert_called()
+    inhibitor.reset_mock()
+    inhibitor.running = True
+    _sync_inhibit(KpsConfig(pulse="inhibit"), inhibitor, paused=True)
+    inhibitor.stop.assert_called()
+
+
+def test_sync_inhibit_start_failure() -> None:
+    """Comprueba sync inhibit start failure."""
+    inhibitor = MagicMock()
+    inhibitor.running = False
+    inhibitor.start.return_value = False
+    _sync_inhibit(KpsConfig(pulse="inhibit"), inhibitor, paused=False)
+    inhibitor.start.assert_called_once()
+
+
+@patch("utils.idle.Monitor")
+@patch("utils.runner.interruptible_sleep", return_value=True)
+@patch("utils.runner.IdleInhibit")
+def test_run_loop_inhibit_dry_run_no_start(
+    mock_inhibit_cls: MagicMock,
+    _sleep: MagicMock,
+    mock_monitor: MagicMock,
+) -> None:
+    """Comprueba run loop inhibit dry run no start."""
+    mock_monitor.is_available.return_value = True
+    mock_monitor.get_idle_sec.return_value = 99
+    inhibitor = MagicMock()
+    inhibitor.running = False
+    mock_inhibit_cls.return_value = inhibitor
+    run_loop(KpsConfig(away_time=2, pulse="inhibit", dry_run=True), ShutdownController())
+    inhibitor.start.assert_not_called()

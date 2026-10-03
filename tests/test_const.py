@@ -16,6 +16,7 @@ from utils.const import (
     Display,
     IdleState,
     OsType,
+    PULSE_MODES,
     Version,
 )
 
@@ -35,6 +36,14 @@ def test_defaults_positive() -> None:
 def test_config_filename() -> None:
     """Comprueba config filename."""
     assert CONFIG_FILENAME.endswith(".toml")
+
+
+def test_pulse_modes() -> None:
+    """Comprueba pulse modes."""
+    assert "mouse" in PULSE_MODES
+    assert "keyboard" in PULSE_MODES
+    assert "both" in PULSE_MODES
+    assert "inhibit" in PULSE_MODES
 
 
 def test_display_str_and_values() -> None:
