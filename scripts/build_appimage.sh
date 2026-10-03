@@ -7,6 +7,7 @@
 #
 # Usa appimagetool moderno (runtime type-2 estático: sin libfuse2 en el host)
 # e incrusta update info + .zsync para AppImageUpdate.
+# Firma GPG: KPS_GPG_KEY_ID (default del proyecto) y KPS_APPIMAGE_SIGN=0 para omitir.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -24,6 +25,8 @@ MAX_BUILD_GLIBC="2.27"
 DOCKER_IMAGE="${KPS_APPIMAGE_DOCKER_IMAGE:-ubuntu:18.04}"
 UPDATE_OWNER="${KPS_APPIMAGE_UPDATE_OWNER:-alanjmrt94}"
 UPDATE_REPO="${KPS_APPIMAGE_UPDATE_REPO:-kps}"
+# Clave de firma del proyecto (pública en keys/kps-signing-key.asc).
+GPG_KEY_ID="${KPS_GPG_KEY_ID:-73140C59FF3EBE5D}"
 
 log() {
     printf '[kps build] %s\n' "$*"
@@ -86,8 +89,10 @@ maybe_reexec_in_docker() {
     fi
     log "Host glibc ${glibc} > ${MAX_BUILD_GLIBC}; reejecutando en ${DOCKER_IMAGE}..."
     mkdir -p "${DIST_DIR}" "${PROJECT_ROOT}/build"
+    # Dentro de Docker no hay clave secreta: se firma después en el host.
     docker run --rm --network host \
         -e KPS_APPIMAGE_IN_DOCKER=1 \
+        -e KPS_APPIMAGE_SIGN=0 \
         -e KPS_APPIMAGE_UPDATE_OWNER="${UPDATE_OWNER}" \
         -e KPS_APPIMAGE_UPDATE_REPO="${UPDATE_REPO}" \
         -v "${PROJECT_ROOT}:/src:ro" \
@@ -150,6 +155,15 @@ ls -la /out/
 echo BUILD_OK
 EOS
 )"
+    # Docker deja dist/ y build/ como root: intentar recuperar escritura.
+    if command -v sudo >/dev/null 2>&1; then
+        log "Ajustando dueño de dist/ y build/ (archivos de Docker)..."
+        sudo chown -R "$(id -u):$(id -g)" "${DIST_DIR}" "${PROJECT_ROOT}/build" 2>/dev/null || true
+    fi
+    ensure_appimagetool
+    package_appimage
+    verify_appimage_signature
+    print_usage
     exit 0
 }
 
@@ -297,12 +311,20 @@ update_information() {
         "${UPDATE_OWNER}" "${UPDATE_REPO}" "${arch}"
 }
 
-build_appimage() {
-    local arch output update_info
+should_sign_appimage() {
+    [[ "${KPS_APPIMAGE_SIGN:-1}" != "0" ]] || return 1
+    [[ -n "${GPG_KEY_ID}" ]] || return 1
+    command -v gpg >/dev/null 2>&1 || return 1
+    gpg --list-secret-keys --with-colons "${GPG_KEY_ID}" >/dev/null 2>&1
+}
+
+package_appimage() {
+    local arch output update_info sign_args=()
     arch="$(detect_arch)"
     output="${DIST_DIR}/kps-${arch}.AppImage"
     update_info="$(update_information)"
 
+    [[ -d "${APPDIR}" ]] || die "No existe AppDir: ${APPDIR}"
     mkdir -p "${DIST_DIR}"
     rm -f "${output}" "${output}.zsync"
     log "Generando ${output}..."
@@ -310,12 +332,42 @@ build_appimage() {
     if ! command -v zsyncmake >/dev/null 2>&1; then
         log "AVISO: zsyncmake no está instalado; appimagetool puede omitir el .zsync"
     fi
+    if should_sign_appimage; then
+        log "Firmando con GPG ${GPG_KEY_ID} (te pedirá la passphrase)..."
+        export GPG_TTY="${GPG_TTY:-$(tty 2>/dev/null || true)}"
+        sign_args=(-s --sign-key "${GPG_KEY_ID}")
+    else
+        log "AVISO: AppImage sin firma GPG (importa la clave o exporta KPS_GPG_KEY_ID; KPS_APPIMAGE_SIGN=0 omite)."
+    fi
     ARCH="${arch}" APPIMAGE_EXTRACT_AND_RUN=1 \
-        "${APPIMAGETOOL}" -u "${update_info}" "${APPDIR}" "${output}"
+        "${APPIMAGETOOL}" -u "${update_info}" "${sign_args[@]}" "${APPDIR}" "${output}"
     chmod +x "${output}"
     log "Listo: ${output}"
-    # appimagetool a veces deja el .zsync en el cwd, no junto al AppImage.
     collect_zsync_file "${output}"
+}
+
+verify_appimage_signature() {
+    local arch output sig
+    arch="$(detect_arch)"
+    output="${DIST_DIR}/kps-${arch}.AppImage"
+    [[ -x "${output}" ]] || return 0
+    if ! should_sign_appimage; then
+        return 0
+    fi
+    log "Verificando firma embebida..."
+    # No usar APPIMAGE_EXTRACT_AND_RUN: el runtime debe interceptar --appimage-*.
+    sig="$("${output}" --appimage-signature 2>&1 || true)"
+    if ! grep -q 'BEGIN PGP SIGNATURE' <<<"${sig}"; then
+        die "El AppImage no tiene firma embebida tras el build.
+${sig}"
+    fi
+    printf '%s\n' "${sig}"
+    log "Firma GPG OK (clave ${GPG_KEY_ID})."
+}
+
+build_appimage() {
+    package_appimage
+    verify_appimage_signature
 }
 
 collect_zsync_file() {
@@ -354,7 +406,9 @@ print_usage() {
     log "  ${DIST_DIR}/kps-$(detect_arch).AppImage -h"
     log "  ./run-appimage -h"
     log ""
-    log "Publicar también el .zsync junto al AppImage en GitHub Releases."
+    log "Publicar AppImage + .zsync en GitHub Releases."
+    log "Verificar firma: ./dist/kps-$(detect_arch).AppImage --appimage-signature"
+    log "Clave pública: keys/kps-signing-key.asc (fingerprint 5077A813F9AE818752168EA173140C59FF3EBE5D)"
 }
 
 main() {

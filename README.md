@@ -225,6 +225,19 @@ Además configura `/dev/uinput` vía udev (`scripts/udev-rules/40-uinput.rules`)
 
 El AppImage se construye en Ubuntu 18.04 (glibc 2.27) vía Docker cuando el host es más nuevo, para cubrir Ubuntu 18.04–26.04. Incluye runtime estático (no necesita `libfuse2`) y, al publicarlo, el `.zsync` para AppImageUpdate.
 
+**Firma GPG:** el build firma el AppImage con la clave del proyecto si está disponible en el anillo local (`KPS_GPG_KEY_ID`, por defecto `73140C59FF3EBE5D`). Para omitir: `KPS_APPIMAGE_SIGN=0`.
+
+```bash
+# Verificar un AppImage descargado (sin APPIMAGE_EXTRACT_AND_RUN)
+./kps-x86_64.AppImage --appimage-signature
+
+# Importar la clave pública del repo
+gpg --import keys/kps-signing-key.asc
+# Fingerprint: 5077A813F9AE818752168EA173140C59FF3EBE5D
+# Key ID: 73140C59FF3EBE5D
+# https://keys.openpgp.org
+```
+
 Tras `install.bat` / `install-macos.sh` / `install.sh`, ejecuta el script de build de tu plataforma. En macOS puede hacer falta **Accesibilidad** para `pyautogui`. En Linux el AppImage aún requiere **gdbus** y permisos **uinput** en el host (ver abajo).
 
 ### Python dependencies (pip)
@@ -310,6 +323,8 @@ kps/
 │   ├── requirements*.txt
 │   └── udev-rules/
 │       └── 40-uinput.rules
+├── keys/
+│   └── kps-signing-key.asc  # Clave pública GPG (AppImage / commits)
 └── utils/                 # Core modules
 ```
 
