@@ -386,7 +386,7 @@ kps/
 
 ## Open tasks
 
-Work still needed after v2.2.0:
+The project is **feature-complete** as of v2.2.0. These two items remain, but they are **not viable for now** (no Mac at hand / no Apple Developer Program):
 
 * **macOS 12+ validation** — run `dist/kps.app` (or `./run-macos`): Quartz idle, pyautogui, and **Accessibility** (Settings → Privacy).
 * **Apple notarization** of the `.app` (`codesign` / `notarytool`; Apple Developer account). The Linux AppImage is already GPG-signed at build time.
