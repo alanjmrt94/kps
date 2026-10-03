@@ -146,7 +146,7 @@ Requisito: `python3`; permisos de **Accesibilidad** pueden ser necesarios para p
 | Ubuntu 22.04 / 24.04 / **26.04** + GNOME (Wayland) | **Sí** — idle Mutter D-Bus + uinput | Re-login tras install (grupo `uinput`) |
 | Ubuntu MATE (GTK3, X11) | Sí — XScreenSaver + uinput (v1.4.1) | Wayland MATE no verificado |
 | Windows 10/11 | **Sí** — idle WinAPI + pyautogui + `kps.exe` | Hotkey F1–F12 solo en Windows |
-| macOS 12+ | Implementado | Accesibilidad; prueba manual pendiente |
+| macOS 12+ | Implementado | Accesibilidad; ver [Tareas pendientes](#tareas-pendientes) |
 
 ## Inicio rápido
 
@@ -382,7 +382,16 @@ kps/
 └── utils/                 # Core (cli, runner, inhibit, doctor, tray, …)
 ```
 
-**v2.2.0** — `--inhibit-only`. **v2.1.0** — perfiles, bandeja, doctor, autostart, docs bilingües. Pendiente: prueba manual macOS y notarización Apple.
+**v2.2.0** — `--inhibit-only`. **v2.1.0** — perfiles, bandeja, doctor, autostart, docs bilingües.
+
+## Tareas pendientes
+
+Lo que sigue abierto después de v2.2.0:
+
+* **Validación en macOS 12+** — ejecutar `dist/kps.app` (o `./run-macos`): idle Quartz, pyautogui y permiso de **Accesibilidad** (Ajustes → Privacidad).
+* **Notarización Apple** del `.app` (`codesign` / `notarytool`; cuenta de desarrollador). El AppImage de Linux ya se firma con GPG en el build.
+
+Si podés hacer la validación en macOS, abrí un [pull request](https://github.com/alanjmrt94/kps/pulls) indicando qué probaste (versión del SO, backend idle, movimiento, Accesibilidad) para que lo marquemos como confirmado.
 
 ## Releases anteriores
 

@@ -146,7 +146,7 @@ Requirement: `python3`; **Accessibility** permission may be required for pyautog
 | Ubuntu 22.04 / 24.04 / **26.04** + GNOME (Wayland) | **Yes** — Mutter D-Bus idle + uinput | Re-login after install (`uinput` group) |
 | Ubuntu MATE (GTK3, X11) | Yes — XScreenSaver + uinput (v1.4.1) | MATE Wayland not verified |
 | Windows 10/11 | **Yes** — WinAPI idle + pyautogui + `kps.exe` | F1–F12 hotkey on Windows only |
-| macOS 12+ | Implemented | Accessibility; manual test still pending |
+| macOS 12+ | Implemented | Accessibility; see [Open tasks](#open-tasks) |
 
 ## Quick start
 
@@ -382,7 +382,16 @@ kps/
 └── utils/                 # Core (cli, runner, inhibit, doctor, tray, …)
 ```
 
-**v2.2.0** — `--inhibit-only`. **v2.1.0** — profiles, tray, doctor, autostart, bilingual docs. Pending: manual macOS test and Apple notarization.
+**v2.2.0** — `--inhibit-only`. **v2.1.0** — profiles, tray, doctor, autostart, bilingual docs.
+
+## Open tasks
+
+Work still needed after v2.2.0:
+
+* **macOS 12+ validation** — run `dist/kps.app` (or `./run-macos`): Quartz idle, pyautogui, and **Accessibility** (Settings → Privacy).
+* **Apple notarization** of the `.app` (`codesign` / `notarytool`; Apple Developer account). The Linux AppImage is already GPG-signed at build time.
+
+If you can do the macOS validation, please open a [pull request](https://github.com/alanjmrt94/kps/pulls) with what you tested (OS version, idle backend, movement, Accessibility) so we can mark it confirmed.
 
 ## Older releases
 
