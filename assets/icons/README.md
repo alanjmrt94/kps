@@ -38,17 +38,7 @@ También deja `linux/kps.png` (256×256) en la raíz de `linux/`.
 | `assets/image_base.png` | Fuente PNG (cualquier tamaño cuadrado; el script redimensiona) |
 | `assets/image_base.icns` | ICNS listo para macOS (se copia a `kps.icns`; no hace falta redimensionar) |
 
-Generar toda la suite:
-
-```bash
-./scripts/generate_icons.sh
-```
-
-Requiere **Pillow**. Si no hay `image_base.icns`, `kps.icns` se genera en **macOS** (`iconutil`) o con **ImageMagick**.
-
-## Fuente de referencia (generada)
-
-Tras ejecutar el script, se copia la base a `source/kps-base.png` dentro de este directorio.
+La suite que usan los builds ya está en este directorio.
 
 ## Verificar antes de empaquetar
 

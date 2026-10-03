@@ -9,10 +9,8 @@ _NOTES.MD
 NOTES.local.md
 *.local.md
 
-# --- Cursor IDE (estado local del agente; planes/rules pueden versionarse) ---
+# --- Cursor IDE (estado local; las rules sí se versionan) ---
 .cursor/*
-!.cursor/plans/
-!.cursor/plans/**
 !.cursor/rules/
 !.cursor/rules/**
 
@@ -112,6 +110,16 @@ build/appimage/
 build/tools/
 assets/icons/build/
 *.AppImage
+
+# --- scripts/ que no hacen falta para compilar ni para CI ---
+scripts/README.md
+scripts/release.sh
+scripts/lint.sh
+scripts/generate_icons.sh
+scripts/generate_icons.py
+scripts/install-systemd.sh
+scripts/kps-user.service
+scripts/appimage/appimagehub.data
 
 # --- Jupyter (por si se usan notebooks de prueba) ---
 .ipynb_checkpoints/
