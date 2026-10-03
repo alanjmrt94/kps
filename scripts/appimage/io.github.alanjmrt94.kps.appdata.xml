@@ -5,9 +5,9 @@
   <summary>Evita inactividad moviendo el cursor cuando estás ausente</summary>
   <description>
     <p>
-      kps detecta inactividad del usuario y mueve el cursor para evitar
-      suspensión, bloqueo de sesión o cambio de estado en aplicaciones
-      como Teams o Slack.
+      kps detecta inactividad y puede mover el cursor, pulsar una tecla,
+      hacer ambas cosas, o solo inhibir el idle/sleep del sistema
+      (sin fingir entrada).
     </p>
     <p>Compatible con sesiones Linux X11 y Wayland.</p>
   </description>
@@ -20,6 +20,16 @@
   <project_license>GPL-3.0-or-later</project_license>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="2.2.0" date="2026-10-03">
+      <description>
+        <p>Modo --inhibit-only: inhibe idle/sleep del SO sin mover el cursor ni pulsar teclas.</p>
+      </description>
+    </release>
+    <release version="2.1.0" date="2026-10-03">
+      <description>
+        <p>Perfiles work/night, bandeja con estado, pulso teclado/ambos, kps doctor y autostart.</p>
+      </description>
+    </release>
     <release version="2.0.7" date="2026-10-02">
       <description>
         <p>AppImage: Ubuntu 18.04–26.04, runtime sin libfuse2, bandeja por defecto y AppImageUpdate.</p>

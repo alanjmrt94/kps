@@ -2,7 +2,7 @@
 Type=Application
 Name=kps
 GenericName=Keep pointer active
-Comment=Evita inactividad moviendo el cursor cuando el usuario está ausente
+Comment=Evita inactividad: cursor, teclado o solo inhibir sleep del SO
 Exec=kps --tray %F
 Icon=kps
 Categories=Utility;

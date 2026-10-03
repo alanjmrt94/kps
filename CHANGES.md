@@ -1,5 +1,37 @@
 # Release notes
 
+## 2.2.0
+
+**Modo solo inhibir idle/sleep del SO.**
+
+* `--inhibit-only` / `--pulse inhibit`: no mueve el cursor ni pulsa teclas
+* Linux: `systemd-inhibit --what=idle:sleep`; macOS: `caffeinate -dims`; Windows: `SetThreadExecutionState`
+* Se suelta al pausar por horario de perfil o al salir
+* `kps doctor` comprueba la herramienta de inhibición
+* Docs y plan local alineados a v2.2.0 (`README.md` / `README-es.md`)
+
+---
+
+## 2.1.0
+
+**Perfiles, bandeja con estado, pulso teclado/ambos, doctor y autostart.**
+
+### Producto
+
+* **Perfiles** en `config.toml` (`[profiles.work]`, `[profiles.night]`) con horario `start`/`end` (incluye tramos que cruzan medianoche). CLI: `--profile`
+* **Bandeja**: tooltip e icono tintado según **activo** / **ausente** / **pausado** (fuera de horario)
+* **Pulso**: `--pulse mouse|keyboard|both`. `--keyboard` = ambos en paralelo; `--keyboard-only` = solo teclado
+* **`kps doctor`**: sesión, clientes D-Bus, idle, uinput, Accesibilidad macOS, firma GPG del AppImage
+* **`kps autostart enable|disable|status`**: XDG + systemd user (Linux, prioriza `$APPIMAGE`), LaunchAgent (macOS), carpeta Inicio (Windows)
+
+### Firma AppImage
+
+* El build sigue embebiendo GPG (`appimagetool -s`) cuando la clave secreta está en el anillo
+* `kps doctor` comprueba `-----BEGIN PGP SIGNATURE-----` si corre como AppImage
+* Documentación: `README.md` (inglés) y `README-es.md` (español), con enlace cruzado por banderas
+
+---
+
 ## 2.0.7
 
 **AppImage para Ubuntu 18.04–26.04 y catálogo AppImageHub.**

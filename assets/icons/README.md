@@ -53,6 +53,6 @@ La suite que usan los builds ya está en este directorio.
 | `scripts/build_windows.bat` | `kps.ico` |
 | `scripts/build_macos.sh` | `kps.icns` |
 | `scripts/build_appimage.sh` | `linux/kps.png` + `linux/hicolor/**` |
-| `kps --tray` | `kps-tray.png` (fallback: `linux/hicolor/64x64/apps/kps.png`) |
+| `kps --tray` | `kps-tray.png` (fallback: `linux/hicolor/64x64/apps/kps.png`); tinted by status (active / away / paused) |
 
 Si falta un archivo, el build continúa con aviso y sin icono en ese artefacto.

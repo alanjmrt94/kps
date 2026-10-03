@@ -1,129 +1,152 @@
 # kps
 
-[GitHub](https://github.com/alanjmrt94/kps) · [PyPI — `kps-idle`](https://pypi.org/project/kps-idle/) · [Releases](https://github.com/alanjmrt94/kps/releases)
+<small>[GitHub](https://github.com/alanjmrt94/kps) · [PyPI — `kps-idle`](https://pypi.org/project/kps-idle/) · [Releases](https://github.com/alanjmrt94/kps/releases) · <a href="README-es.md"><img src="https://flagcdn.com/w20/ar.png" width="20" alt="Leer versión en Español" /> Leer en Español</a></small>
 
 Keep moving the cursor if you are away to avoid inactivity.
 
 ## Features
 
 * Supports **Windows**, **Linux** and **macOS**.
-* On Linux, supports both **X11** and **Wayland**!
-* **Auto install dependencies** via platform scripts and virtualenv.
-* Supports **Python 3+**.
+* On Linux, supports both **X11** and **Wayland**.
+* **Auto-installs dependencies** via platform scripts and a virtualenv.
+* Requires **Python 3.10+**.
+* Scheduled **profiles**, tray status, mouse/keyboard/`both`/`inhibit` pulse, `kps doctor`, and AppImage autostart.
 
-The program works in the background and waits only for inactivity to move the mouse.
+The program runs in the background. After idle time it can move the mouse, pulse a key, do both, or only inhibit OS sleep.
+
+## Pulse modes
+
+| Mode | CLI | Effect |
+|------|-----|--------|
+| `mouse` | (default) | Move the cursor |
+| `keyboard` | `--keyboard-only` | Shift pulse only |
+| `both` | `--keyboard` | Mouse and keyboard together |
+| `inhibit` | `--inhibit-only` | Keep the OS awake (`systemd-inhibit` / `caffeinate` / `SetThreadExecutionState`); no input faking |
+
+Profiles (`work`, `night`, …) live in `config.toml` under `[profiles.name]` with `pulse` and `start`/`end`. Outside the window, kps is **paused** (tray) and releases inhibit.
+
+Tray tooltip: **active** / **away** / **paused**. Commands: `kps doctor`, `kps autostart enable|disable|status`.
 
 ## Latest changes
 
-Release **v2.0.7** — AppImage Ubuntu 18.04–26.04:
+Release **v2.2.0** — inhibit-only:
 
-* Build en glibc 2.27 (Docker Ubuntu 18.04); runtime estático sin `libfuse2`
-* AppImageUpdate (`.zsync`); bandeja por defecto; un solo icono 128×128
+* `--inhibit-only` / `--pulse inhibit` keeps the OS awake (no mouse/keyboard)
+* Linux `systemd-inhibit`, macOS `caffeinate`, Windows `SetThreadExecutionState`
 
-Release **v2.0.6** — AppImage para AppImageHub:
+Release **v2.1.0** — profiles, tray, doctor, autostart:
 
-* Un solo `kps.png` de 128×128 dentro del AppImage (sin la copia del bundle PyInstaller)
+* `--pulse mouse|keyboard|both|inhibit`; tray: active / away / paused
+* `kps doctor` and `kps autostart enable` (AppImage via `$APPIMAGE`)
+
+Release **v2.0.7** — AppImage for Ubuntu 18.04–26.04:
+
+* Built against glibc 2.27 (Docker Ubuntu 18.04); static runtime (no `libfuse2`)
+* AppImageUpdate (`.zsync`); tray by default; a single 128×128 icon
+
+Release **v2.0.6** — AppImageHub catalog:
+
+* A single `kps.png` at 128×128 inside the AppImage (no PyInstaller duplicate)
 
 Release **v2.0.5** — PyPI `kps-idle`:
 
-* Paquete PyPI renombrado a **`kps-idle`** (`pip install kps-idle`; comando `kps`)
-* **`release.sh`**: artefactos y URL PyPI según `pyproject.toml`; fallo explícito si twine error
+* PyPI package renamed to **`kps-idle`** (`pip install kps-idle`; CLI command `kps`)
+* **`release.sh`**: artifacts and PyPI URL from `pyproject.toml`; explicit error if twine fails
 
-Release **v2.0.4** — Windows y CI:
+Release **v2.0.4** — Windows CI and validation:
 
-* **CI `test-windows`** estable (`linux_uinput_modules`, rutas bundled con `Path.resolve()`)
-* **Windows 10/11** validado manualmente (`kps.exe`, idle, movimiento)
+* Stable **`test-windows`** job (`linux_uinput_modules`, bundled paths via `Path.resolve()`)
+* **Windows 10/11** verified manually (`kps.exe`, idle, movement)
 
-Release **v2.0.2** — calidad de código:
+Release **v2.0.2** — code quality:
 
-* Docstrings en tests, `idle.py` y `generate_icons.py`
-* **`lint.sh`**: autopep8 + reparación de comentarios pylint; pylint 10/10
-* Tests uinput compatibles con CI Windows (`importlib`)
+* Docstrings in tests, `idle.py`, and `generate_icons.py`
+* **`lint.sh`**: autopep8 plus pylint comment repair; pylint 10/10
+* uinput tests compatible with Windows CI (`importlib`)
 
-Release **v2.0.1** — parche AppImage:
+Release **v2.0.1** — AppImage patch:
 
-* **AppStream** en AppImage (metadatos validados por `appimagetool`)
-* **`run-appimage`**: pregunta por instalar `libfuse2`; fallback sin FUSE
-* **CI:** job `build-appimage` en GitHub Actions (artefacto `kps-x86_64.AppImage`)
+* **AppStream** metadata in the AppImage (validated by `appimagetool`)
+* **`run-appimage`**: prompts to install `libfuse2`; fallback without FUSE
+* **CI:** `build-appimage` job on GitHub Actions (`kps-x86_64.AppImage` artifact)
 
-Release **v2.0.0** — dependencias mínimas, empaquetado e iconos:
+Release **v2.0.0** — minimal deps, packaging, and icons:
 
-* **Linux:** 6 paquetes apt (sin PyGObject ni `python-uinput`); D-Bus vía `gdbus`/`busctl`; uinput vía ctypes
-* **Empaquetado:** `dist/kps.exe` (Win), `dist/kps.app` (macOS), `dist/kps-*.AppImage` (Linux); `./run-appimage`
-* **Iconos:** suite en `assets/icons/` desde `image_base.png` / `image_base.icns`; bandeja `--tray`
-* **Desinstalar:** `./run --uninstall` o `./scripts/install.sh --uninstall`
-* **Movimiento in-process** — sin subprocess; corrige fallos de import en Linux
-* **211 tests** (1 skipped), cobertura ~98%
+* **Linux:** 6 apt packages (no PyGObject or `python-uinput`); D-Bus via `gdbus`/`busctl`; uinput via ctypes
+* **Packaging:** `dist/kps.exe` (Win), `dist/kps.app` (macOS), `dist/kps-*.AppImage` (Linux); `./run-appimage`
+* **Icons:** suite under `assets/icons/` from `image_base.png` / `image_base.icns`; tray `--tray`
+* **Uninstall:** `./run --uninstall` or `./scripts/install.sh --uninstall`
+* **In-process movement** — no subprocess; fixes Linux import failures
 
-**Migración desde v1.7.x (Linux):** `./run --uninstall -y` (opcional) y luego `./run`. Borra `.venv` antiguo si usaba `--system-site-packages`. Ver [CHANGES.md](CHANGES.md#200).
+**Migrating from v1.7.x (Linux):** `./run --uninstall -y` (optional) then `./run`. Delete an old `.venv` if it used `--system-site-packages`. See [CHANGES.md](CHANGES.md#200).
 
-Release **v1.7.2** — parche CI y mypy; Wayland + GNOME validado (Ubuntu 26.04).
+Release **v1.7.2** — CI and mypy patch; Wayland + GNOME verified (Ubuntu 26.04).
 
-Release **v1.7.0** — tray, systemd, teclado opcional, hotkey Unix, PyInstaller Windows.
+Release **v1.7.0** — tray, systemd, optional keyboard, Unix hotkey, Windows PyInstaller.
 
-See [CHANGES.md](CHANGES.md) for full release notes.
+See [CHANGES.md](CHANGES.md) for full release notes (Spanish).
 
-## Compatibilidad
+## Compatibility
 
-Versiones y entornos probados o esperados según el backend de inactividad y movimiento del ratón.
+Tested or expected versions depending on the idle backend and mouse movement.
 
 ### Python
 
-| Versión | Estado |
+| Version | Status |
 |---------|--------|
-| 3.10 – 3.12 | Compatible (objetivo principal; Ubuntu 24.04) |
-| 3.8 – 3.9 | Probable; no verificado en CI |
-| menor que 3.8 | No soportado |
+| 3.10 – 3.12 | Supported (primary target; Ubuntu 24.04) |
+| 3.8 – 3.9 | Likely; not verified in CI |
+| older than 3.8 | Not supported |
 
 ### Linux
 
-**Distros con script de instalación:** Debian/Ubuntu (`scripts/install.sh`). Otras distros: instalar manualmente `python3`, `libglib2.0-bin`, `libx11-6`, `libxss1`, permisos uinput y `pip install pynput`.
+**Distros with an install script:** Debian/Ubuntu (`scripts/install.sh`). Other distros: install `python3`, `libglib2.0-bin`, `libx11-6`, `libxss1`, uinput permissions, and `pip install pynput` yourself.
 
-**Importante:** kps **no usa GTK ni PyGObject**. En Linux, idle vía **D-Bus** (`gdbus`/`busctl`) y, en X11, **XScreenSaver** (`libXss`). Movimiento del ratón vía `/dev/uinput` (ctypes, sin `python-uinput`).
+**Note:** kps **does not use GTK or PyGObject**. On Linux, idle is via **D-Bus** (`gdbus`/`busctl`) and, on X11, **XScreenSaver** (`libXss`). Mouse movement uses `/dev/uinput` (ctypes, no `python-uinput`).
 
-| Escritorio / entorno | Sesión típica | Detección idle | Movimiento ratón |
-|----------------------|---------------|----------------|------------------|
-| **GNOME** (Ubuntu, Fedora…) | Wayland | D-Bus `org.gnome.Mutter.IdleMonitor` (o freedesktop) — **probado Ubuntu 26.04** | uinput |
-| **GNOME** | X11 | D-Bus → fallback XScreenSaver | uinput |
+| Desktop / environment | Typical session | Idle detection | Mouse movement |
+|----------------------|-----------------|----------------|----------------|
+| **GNOME** (Ubuntu, Fedora…) | Wayland | D-Bus `org.gnome.Mutter.IdleMonitor` (or freedesktop) — **tested on Ubuntu 26.04** | uinput |
+| **GNOME** | X11 | D-Bus → XScreenSaver fallback | uinput |
 | **Ubuntu MATE**, **Xfce**, **LXQt**, **Cinnamon** | X11 | XScreenSaver (`libXss`) | uinput |
-| **KDE Plasma** | X11 | D-Bus freedesktop o XScreenSaver | uinput |
-| **KDE Plasma** | Wayland | D-Bus freedesktop (si el compositor lo expone) | uinput |
-| **i3**, **Openbox**, WM mínimos | X11 | XScreenSaver | uinput |
+| **KDE Plasma** | X11 | D-Bus freedesktop or XScreenSaver | uinput |
+| **KDE Plasma** | Wayland | D-Bus freedesktop (if the compositor exposes it) | uinput |
+| **i3**, **Openbox**, minimal WMs | X11 | XScreenSaver | uinput |
 
-**Wayland sin D-Bus idle** (p. ej. MATE experimental en Wayland, algunos compositores): el monitor puede quedar no disponible; usar sesión **X11** o un DE que exponga idle por D-Bus.
+**Wayland without D-Bus idle** (e.g. experimental MATE on Wayland, some compositors): the monitor may be unavailable; use an **X11** session or a DE that exposes idle over D-Bus.
 
-**Comprobar en tu máquina:**
+**Check on your machine:**
 
 ```bash
-echo "$XDG_SESSION_TYPE"    # x11 o wayland
-./run -v                    # logs del backend idle elegido
+echo "$XDG_SESSION_TYPE"    # x11 or wayland
+./run -v                    # logs which idle backend was chosen
 ```
 
 ### Windows
 
-| Versión | Detección idle | Movimiento |
-|---------|----------------|------------|
+| Version | Idle detection | Movement |
+|---------|----------------|----------|
 | Windows 10 | `GetLastInputInfo` (WinAPI) | pyautogui |
-| Windows 11 | Idem | pyautogui |
+| Windows 11 | Same | pyautogui |
 
-Requisito: Python 3 en PATH (`python`).
+Requirement: Python 3 on PATH (`python`).
 
 ### macOS
 
-| Versión | Detección idle | Movimiento |
-|---------|----------------|------------|
-| macOS 12+ (Monterey y posteriores) | Quartz `CGEventSourceSecondsSinceLastEventType` | pyautogui |
+| Version | Idle detection | Movement |
+|---------|----------------|----------|
+| macOS 12+ (Monterey and later) | Quartz `CGEventSourceSecondsSinceLastEventType` | pyautogui |
 
-Requisito: `python3`; permisos de **Accesibilidad** pueden ser necesarios para pyautogui (Ajustes → Privacidad).
+Requirement: `python3`; **Accessibility** permission may be required for pyautogui (Settings → Privacy).
 
-### Resumen por plataforma
+### Summary by platform
 
-| Plataforma | Probado / objetivo | Limitaciones conocidas |
-|------------|-------------------|------------------------|
-| Ubuntu 22.04 / 24.04 / **26.04** + GNOME (Wayland) | **Sí** — idle Mutter D-Bus + uinput | Re-login tras install (grupo `uinput`) |
-| Ubuntu MATE (GTK3, X11) | Sí — XScreenSaver + uinput (v1.4.1) | Wayland MATE no verificado |
-| Windows 10/11 | **Sí** — idle WinAPI + pyautogui + `kps.exe` | Hotkey F1–F12 solo en Windows |
-| macOS 12+ | Implementado | Accesibilidad; prueba manual pendiente |
+| Platform | Tested / target | Known limitations |
+|----------|-----------------|-------------------|
+| Ubuntu 22.04 / 24.04 / **26.04** + GNOME (Wayland) | **Yes** — Mutter D-Bus idle + uinput | Re-login after install (`uinput` group) |
+| Ubuntu MATE (GTK3, X11) | Yes — XScreenSaver + uinput (v1.4.1) | MATE Wayland not verified |
+| Windows 10/11 | **Yes** — WinAPI idle + pyautogui + `kps.exe` | F1–F12 hotkey on Windows only |
+| macOS 12+ | Implemented | Accessibility; manual test still pending |
 
 ## Quick start
 
@@ -134,26 +157,26 @@ Clone the repository:
 
 ### Linux (Debian/Ubuntu)
 
-Instalar y ejecutar en un paso:
+Install and run in one step:
 
     ./run
 
-Solo instalar:
+Install only:
 
     ./scripts/install.sh
 
-Luego manualmente:
+Then manually:
 
     source .venv/bin/activate
     python kps.py
 
 ### Windows
 
-Doble clic o en CMD/PowerShell:
+Double-click or from CMD/PowerShell:
 
     run.bat
 
-Solo instalar:
+Install only:
 
     scripts\install.bat
 
@@ -161,7 +184,7 @@ Solo instalar:
 
     ./run-macos
 
-Solo instalar:
+Install only:
 
     ./scripts/install-macos.sh
 
@@ -171,81 +194,108 @@ After installation:
 
     python3 kps.py
 
-Use `-h` to see available options. Examples:
+Use `-h` for options. Examples:
 
     python3 kps.py -t 10
     python3 kps.py -p 3 -v
     python3 kps.py -q
-    python3 kps.py -n -t 5          # dry-run: probar idle sin mover ratón
-    python3 kps.py -d --pid-file /tmp/kps.pid   # segundo plano (Linux)
+    python3 kps.py -n -t 5          # dry-run: probe idle without moving the mouse
+    python3 kps.py -d --pid-file /tmp/kps.pid   # background (Linux)
+    python3 kps.py --keyboard-only  # Shift only, no cursor movement
+    python3 kps.py --keyboard       # mouse and keyboard in parallel
+    python3 kps.py --inhibit-only   # OS idle/sleep inhibit only
+    python3 kps.py --profile work
+    python3 kps.py doctor
+    python3 kps.py autostart enable
 
 ### Config file
 
-Copia `config.example.toml` a `~/.config/kps/config.toml` (Linux) o `%APPDATA%\kps\config.toml` (Windows).
-La CLI tiene prioridad sobre el archivo.
+Copy `config.example.toml` to `~/.config/kps/config.toml` (Linux) or `%APPDATA%\kps\config.toml` (Windows).
+The CLI overrides the file. Example profiles: `[profiles.work]`, `[profiles.night]`.
+
+```toml
+[kps]
+pulse = "mouse"          # mouse | keyboard | both | inhibit
+profile = "work"
+
+[profiles.work]
+pulse = "both"
+start = "09:00"
+end = "18:00"
+```
 
     mkdir -p ~/.config/kps
     cp config.example.toml ~/.config/kps/config.toml
 
-Detener daemon en Linux:
+Autostart (Linux, useful with the AppImage):
+
+    kps autostart enable    # ~/.config/autostart + systemd --user
+    kps autostart status
+    kps autostart disable
+
+Diagnose the environment (uinput, D-Bus idle, inhibit tool, AppImage signature):
+
+    kps doctor
+
+Stop the daemon on Linux:
 
     kill -USR1 $(cat /tmp/kps.pid)
-    # o
+    # or
     kill -TERM $(cat /tmp/kps.pid)
 
 ## Installation details
 
-| Plataforma | Script install | Requirements pip | Lanzador |
-|------------|----------------|------------------|----------|
+| Platform | Install script | pip requirements | Launcher |
+|----------|----------------|------------------|----------|
 | Linux | `scripts/install.sh` | `scripts/requirements.txt` | `run` |
 | Windows | `scripts/install.bat` | `scripts/requirements-windows.txt` | `run.bat` |
 | macOS | `scripts/install-macos.sh` | `scripts/requirements-macos.txt` | `run-macos` |
 
-### Linux system packages (mínimo)
+### Linux system packages (minimum)
 
-`install.sh` instala **solo si faltan** (6 paquetes apt):
+`install.sh` installs **only if missing** (6 apt packages):
 
 * `python3`, `python3-pip`, `python3-venv`
-* `libglib2.0-bin` — cliente D-Bus (`gdbus`) para idle en Wayland/GNOME
-* `libx11-6`, `libxss1` — fallback XScreenSaver en sesión X11
+* `libglib2.0-bin` — D-Bus client (`gdbus`) for idle on Wayland/GNOME
+* `libx11-6`, `libxss1` — XScreenSaver fallback on X11
 
-Además configura `/dev/uinput` vía udev (`scripts/udev-rules/40-uinput.rules`). **No** se instalan PyGObject, build-essential ni paquetes `-dev`.
+It also configures `/dev/uinput` via udev (`scripts/udev-rules/40-uinput.rules`). **No** PyGObject, build-essential, or `-dev` packages.
 
-### Empaquetado (usuario final, sin instalar Python)
+### Packaging (end users, no Python install)
 
-| Plataforma | Build | Salida | Icono requerido |
-|------------|-------|--------|-----------------|
+| Platform | Build | Output | Required icon |
+|----------|-------|--------|---------------|
 | Windows | `scripts\build_windows.bat` | `dist\kps.exe` | `assets/icons/kps.ico` |
 | macOS | `bash scripts/build_macos.sh` | `dist/kps.app` | `assets/icons/kps.icns` |
 | Linux | `./scripts/build_appimage.sh` | `dist/kps-*.AppImage` (+ `.zsync`) | `assets/icons/linux/kps.png` + `hicolor/` |
 
-**Suite de iconos:** ya está en `assets/icons/`. Comprobar con `./scripts/verify_icons.sh`.
+**Icon suite:** already under `assets/icons/`. Check with `./scripts/verify_icons.sh`.
 
-**Desarrollo** (con venv): `./run` · **AppImage** (sin Python): `./run-appimage` o `./dist/kps-*.AppImage`
+**Development** (venv): `./run` · **AppImage** (no Python): `./run-appimage` or `./dist/kps-*.AppImage`
 
-El AppImage se construye en Ubuntu 18.04 (glibc 2.27) vía Docker cuando el host es más nuevo, para cubrir Ubuntu 18.04–26.04. Incluye runtime estático (no necesita `libfuse2`) y, al publicarlo, el `.zsync` para AppImageUpdate.
+The AppImage is built on Ubuntu 18.04 (glibc 2.27) via Docker when the host is newer, covering Ubuntu 18.04–26.04. It includes a static runtime (no `libfuse2`) and, when published, a `.zsync` for AppImageUpdate.
 
-**Firma GPG:** el build firma el AppImage con la clave del proyecto si está disponible en el anillo local (`KPS_GPG_KEY_ID`, por defecto `73140C59FF3EBE5D`). Para omitir: `KPS_APPIMAGE_SIGN=0`.
+**GPG signature:** the build signs the AppImage with the project key if it is in the local keyring (`KPS_GPG_KEY_ID`, default `73140C59FF3EBE5D`). To skip: `KPS_APPIMAGE_SIGN=0`.
 
 ```bash
-# Verificar un AppImage descargado (sin APPIMAGE_EXTRACT_AND_RUN)
+# Verify a downloaded AppImage (do not set APPIMAGE_EXTRACT_AND_RUN)
 ./kps-x86_64.AppImage --appimage-signature
 
-# Importar la clave pública del repo
+# Import the repo public key
 gpg --import keys/kps-signing-key.asc
 # Fingerprint: 5077A813F9AE818752168EA173140C59FF3EBE5D
 # Key ID: 73140C59FF3EBE5D
 # https://keys.openpgp.org
 ```
 
-Tras `install.bat` / `install-macos.sh` / `install.sh`, ejecuta el script de build de tu plataforma. En macOS puede hacer falta **Accesibilidad** para `pyautogui`. En Linux el AppImage aún requiere **gdbus** y permisos **uinput** en el host (ver abajo).
+After `install.bat` / `install-macos.sh` / `install.sh`, run your platform build script. On macOS, **Accessibility** may be required for `pyautogui`. On Linux the AppImage still needs **gdbus** and **uinput** permissions on the host (see below).
 
 ### Python dependencies (pip)
 
 **Linux** (`scripts/requirements.txt`):
 
 * `pynput` (+ `wheel`, `setuptools`)
-* Idle D-Bus y uinput son **módulos internos** (`utils/dbus_idle.py`, `utils/uinput_device.py`)
+* D-Bus idle and uinput are **internal modules** (`utils/dbus_idle.py`, `utils/uinput_device.py`)
 
 **Windows** (`scripts/requirements-windows.txt`):
 
@@ -255,44 +305,44 @@ Tras `install.bat` / `install-macos.sh` / `install.sh`, ejecuta el script de bui
 
 * `pyautogui`, `pynput`, `pyobjc-framework-Quartz`
 
-All Python packages are installed from **PyPI** into `.venv` at the project root (`pip install kps-idle` también disponible como paquete publicado; el comando sigue siendo `kps`).
+All Python packages are installed from **PyPI** into `.venv` at the project root (`pip install kps-idle` is also available; the command is still `kps`).
 
-### Linux: permisos uinput (sin sudo)
+### Linux: uinput permissions (no sudo at runtime)
 
-kps mueve el cursor vía `/dev/uinput`. **No se usa sudo en runtime.**
+kps moves the cursor via `/dev/uinput`. **sudo is not used at runtime.**
 
-1. Ejecuta `./scripts/install.sh` (o `./run`). El script:
-   - carga el módulo `uinput` del kernel
-   - instala la regla udev en `/etc/udev/rules.d/40-uinput.rules`
-   - añade tu usuario al grupo `uinput`
-2. **Cierra sesión y vuelve a entrar** (o reinicia) para que el grupo surta efecto.
-3. Verifica acceso:
+1. Run `./scripts/install.sh` (or `./run`). The script:
+   - loads the `uinput` kernel module
+   - installs the udev rule in `/etc/udev/rules.d/40-uinput.rules`
+   - adds your user to the `uinput` group
+2. **Log out and back in** (or reboot) so the group takes effect.
+3. Verify access:
 
        ls -l /dev/uinput
        groups
 
-   Deberías ver el grupo `uinput` y permisos `crw-rw----` con grupo `uinput`.
+   You should see the `uinput` group and `crw-rw----` permissions with group `uinput`.
 
-4. Al arrancar, `kps.py` comprueba imports y abre uinput **sin sudo**. Si falla, muestra un mensaje con el paso siguiente.
+4. On start, `kps.py` checks imports and opens uinput **without sudo**. If that fails, it prints the next step.
 
-**Regla udev** (`scripts/udev-rules/40-uinput.rules`):
+**udev rule** (`scripts/udev-rules/40-uinput.rules`):
 
     SUBSYSTEM=="misc", KERNEL=="uinput", MODE="0660", GROUP="uinput"
 
 ## Development
 
-Instalar en modo editable con dependencias de desarrollo:
+Editable install with dev dependencies:
 
     pip install -e ".[dev]"
 
-Ejecutar tests y lint:
+Tests and lint:
 
-    pytest          # 214 tests; cobertura ≥ 95% en CI Linux
+    pytest          # coverage ≥ 95% on Linux CI (~296 tests)
     pylint kps.py utils/*.py tests/*.py
 
-CI en GitHub corre los mismos checks en cada push/PR a `main`/`master`: `lint`, `mypy`, `test-linux` (3.10–3.12), `test-windows` y **`build-appimage`** (artefacto descargable).
+GitHub CI runs the same checks on every push/PR to `main`/`master`: `lint`, `mypy`, `test-linux` (3.10–3.12), `test-windows`, and **`build-appimage`** (downloadable artifact).
 
-Instalar como comando global (tras `pip install .`):
+Install as a global command (after `pip install .`):
 
     kps -h
 
@@ -300,15 +350,19 @@ Instalar como comando global (tras `pip install .`):
 
 ```
 kps/
+├── README.md              # English docs
+├── README-es.md           # Spanish docs
+├── CHANGES.md             # Release notes (Spanish)
+├── config.example.toml    # Sample profiles (work / night)
 ├── run                    # Linux: install + run
-├── run-appimage           # Linux: ejecutar AppImage en dist/
+├── run-appimage           # Linux: run AppImage in dist/
 ├── run.bat                # Windows: install + run
 ├── run-macos              # macOS: install + run
 ├── kps.py                 # Main program
 ├── assets/
-│   ├── image_base.png     # Fuente iconos (PNG)
-│   ├── image_base.icns    # Fuente iconos (macOS, opcional)
-│   └── icons/             # Suite generada (ICO, ICNS, hicolor, tray)
+│   ├── image_base.png     # Icon source (PNG)
+│   ├── image_base.icns    # Icon source (macOS, optional)
+│   └── icons/             # Generated suite (ICO, ICNS, hicolor, tray)
 ├── scripts/
 │   ├── install.sh         # Linux install / --uninstall
 │   ├── install.bat        # Windows install
@@ -319,22 +373,22 @@ kps/
 │   ├── kps.spec           # PyInstaller Windows
 │   ├── kps-macos.spec     # PyInstaller macOS
 │   ├── kps-linux.spec     # PyInstaller Linux (AppImage)
-│   ├── verify_icons.sh    # Verificar iconos antes de empaquetar
+│   ├── verify_icons.sh    # Verify icons before packaging
 │   ├── requirements*.txt
 │   └── udev-rules/
 │       └── 40-uinput.rules
 ├── keys/
-│   └── kps-signing-key.asc  # Clave pública GPG (AppImage / commits)
-└── utils/                 # Core modules
+│   └── kps-signing-key.asc  # GPG public key (AppImage / commits)
+└── utils/                 # Core (cli, runner, inhibit, doctor, tray, …)
 ```
 
-**v2.0.7** — AppImage Ubuntu 18–26, sin libfuse2, AppImageUpdate y bandeja. **v2.0.6** — icono 128×128 único. **v2.0.5** — PyPI `kps-idle`. Pendiente: prueba manual macOS.
+**v2.2.0** — `--inhibit-only`. **v2.1.0** — profiles, tray, doctor, autostart, bilingual docs. Pending: manual macOS test and Apple notarization.
 
 ## Older releases
 
 Release v1.1.6:
 
-* Auto install dependencies depending on OS platform and py version
+* Auto install dependencies depending on OS platform and Python version
 * Add version utilities
 * Fix strings and typos
 * Show kps version
