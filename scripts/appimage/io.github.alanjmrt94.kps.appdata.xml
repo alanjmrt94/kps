@@ -20,6 +20,11 @@
   <project_license>GPL-3.0-or-later</project_license>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="2.0.7" date="2026-10-02">
+      <description>
+        <p>AppImage: Ubuntu 18.04–26.04, runtime sin libfuse2, bandeja por defecto y AppImageUpdate.</p>
+      </description>
+    </release>
     <release version="2.0.6" date="2026-09-28">
       <description>
         <p>AppImage: un solo icono 128×128 para el catálogo AppImageHub.</p>

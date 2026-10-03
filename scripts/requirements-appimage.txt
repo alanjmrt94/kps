@@ -1,0 +1,4 @@
+# Dependencias pip para el AppImage Linux (incluye bandeja del sistema).
+-r requirements.txt
+pystray>=0.19
+Pillow>=9.0

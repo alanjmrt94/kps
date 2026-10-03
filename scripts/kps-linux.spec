@@ -3,6 +3,8 @@
 
 from pathlib import Path
 
+from PyInstaller.utils.hooks import collect_all
+
 root = Path(SPEC).resolve().parent.parent
 icons = root / "assets" / "icons"
 icon_datas = []
@@ -13,20 +15,34 @@ if icons.is_dir() and any(
 ):
     icon_datas = [(str(icons), "assets/icons")]
 
+tray_datas, tray_binaries, tray_hidden = collect_all("pystray")
+pil_datas, pil_binaries, pil_hidden = collect_all("PIL")
+
 a = Analysis(
     [str(root / "kps.py")],
     pathex=[str(root)],
-    binaries=[],
+    binaries=[*tray_binaries, *pil_binaries],
     datas=[
         (str(root / "utils"), "utils"),
         (str(root / "config.example.toml"), "."),
         *icon_datas,
+        *tray_datas,
+        *pil_datas,
     ],
     hiddenimports=[
         "pynput",
         "pynput.keyboard",
         "pynput.keyboard._xorg",
         "pynput.keyboard._uinput",
+        "pystray",
+        "pystray._appindicator",
+        "pystray._util",
+        "pystray._util.gtk",
+        "pystray._util.notify_dbus",
+        "PIL",
+        "PIL.Image",
+        *tray_hidden,
+        *pil_hidden,
     ],
     hookspath=[],
     hooksconfig={},

@@ -60,24 +60,21 @@ jobs:
         run: python -m pytest --cov-fail-under=0
 
   build-appimage:
-    runs-on: ubuntu-latest
+    # El AppImage se construye dentro de ubuntu:18.04 (glibc 2.27) vía Docker
+    # para correr en Ubuntu 18.04–26.04. El runner solo necesita Docker.
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.12"
-      - name: Preparar venv para build
-        run: |
-          python -m venv .venv
-          .venv/bin/pip install -q --upgrade pip wheel setuptools
-          .venv/bin/pip install -q -r scripts/requirements.txt
-      - name: Build AppImage
+      - name: Build AppImage (Ubuntu 18.04 / glibc 2.27)
         run: bash scripts/build_appimage.sh
-      - name: Smoke test (sin libfuse2)
-        run: APPIMAGE_EXTRACT_AND_RUN=1 ./dist/kps-x86_64.AppImage -h
+      - name: Smoke test
+        run: ./dist/kps-x86_64.AppImage -h
       - name: Subir artefacto
         uses: actions/upload-artifact@v4
         with:
           name: kps-x86_64-appimage
-          path: dist/kps-x86_64.AppImage
+          path: |
+            dist/kps-x86_64.AppImage
+            dist/kps-x86_64.AppImage.zsync
           retention-days: 14
+          if-no-files-found: error

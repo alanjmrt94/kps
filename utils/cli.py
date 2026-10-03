@@ -68,7 +68,7 @@ def build_parser(defaults: dict | None = None) -> argparse.ArgumentParser:
         "--quiet",
         action="store_true",
         default=cfg.get("quiet", False),
-        help="Solo avisos y errores",
+        help="Solo mensajes WARNING o superiores",
     )
     parser.add_argument(
         "-n",
