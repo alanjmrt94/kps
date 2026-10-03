@@ -122,10 +122,11 @@ def check_dbus_idle() -> CheckResult:
 def _user_groups() -> list[tuple[str, int]]:
     """Grupos del usuario actual (nombre, gid)."""
     result: list[tuple[str, int]] = []
-    if grp is None:
+    getgroups = getattr(os, "getgroups", None)
+    if grp is None or getgroups is None:
         return result
     try:
-        for gid in os.getgroups():
+        for gid in getgroups():
             try:
                 result.append((grp.getgrgid(gid).gr_name, gid))
             except KeyError:

@@ -186,7 +186,7 @@ def test_user_groups_keyerror() -> None:
     mock_grp.getgrgid.side_effect = KeyError
     with (
         patch.object(doc, "grp", mock_grp),
-        patch.object(doc.os, "getgroups", return_value=[999]),
+        patch.object(doc.os, "getgroups", return_value=[999], create=True),
     ):
         groups = doc._user_groups()
     assert groups[0][0] == "999"
