@@ -12,6 +12,7 @@
 * Arranque por defecto en bandeja (`--tray`); `.desktop` con `Terminal=false`
 * Dependencias de bandeja (`pystray`, Pillow) incluidas en el AppImage
 * Texto de `--quiet` sin la palabra «errores» (evita falso positivo OCR del catálogo)
+* Firma GPG embebida (`appimagetool -s`); clave pública en `keys/kps-signing-key.asc`
 
 ---
 
